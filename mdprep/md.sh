@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# GROMACS MD Orkestratör — tek giriş noktası, menü tabanlı kontrol
+# GmxKit — GROMACS protein–ligand MD araç seti (menü + CLI)
 #
 #   ./md                    Proje kökünden (önerilen)
 #   ./mdprep/md.sh            Aynı
@@ -53,7 +53,7 @@ STAGE_LABELS=(
 
 usage() {
     cat <<EOF
-GROMACS MD Orkestratör
+GmxKit — GROMACS protein–ligand MD araç seti
 
   ./md                         Etkileşimli menü (önerilen)
   ./mdprep/md.sh               Aynı
@@ -447,7 +447,8 @@ orchestrator_menu() {
     while true; do
         echo ""
         echo "╔══════════════════════════════════════════════════════════╗"
-        echo "║           GROMACS MD ORKESTRATÖR                         ║"
+        echo "║                        GmxKit                            ║"
+        echo "║              GROMACS protein–ligand MD                   ║"
         echo "╠══════════════════════════════════════════════════════════╣"
         printf "║  %s\n" "${WORKDIR}"
         echo "╚══════════════════════════════════════════════════════════╝"

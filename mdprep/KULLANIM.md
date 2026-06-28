@@ -1,11 +1,11 @@
-# GROMACS CA–Ligand MD Pipeline — Kullanım Kılavuzu
+# GmxKit — Kullanım Kılavuzu
 
-Bu kılavuz, `mdprep/` pipeline'ını **karbonik anhidraz (CA) + Zn²⁺ + ligand** kompleksleri için nasıl kullanacağınızı anlatır.  
+Bu kılavuz, **GmxKit** (`mdprep/`) ile GROMACS protein–ligand MD hazırlığını nasıl kullanacağınızı anlatır. Örnek profil: **CA + Zn²⁺ + ligand** (2Q38); farklı sistemlerde config değişir, akış aynı kalır.  
 Hedef örnekler: **CA I / CA II** yapıları (ör. PDB **6I0L**), ligand **2Q38** — farklı komplekslerde PDB/ligand değişir, akış aynı kalır.
 
 ---
 
-## 1. Genel bakış — orkestratör menüsü
+## 1. Genel bakış — GmxKit menüsü
 
 Proje kökünden **tek komut**:
 
@@ -72,7 +72,7 @@ GROMACS grup menüsü sorulmaz; gruplar `config.sh` + `index.ndx`:
 
 | Script | Görevi |
 |--------|--------|
-| `./md` / `mdprep/md.sh` | **Orkestratör** — menü + CLI |
+| `./md` / `mdprep/md.sh` | **GmxKit** — menü + CLI |
 | `mdprep/run.sh` | Hazırlık aşamaları (00–06) |
 | `run_local_md.sh` | NVT → NPT → production MD |
 | `check_binding.sh` | Ligand aktif sitede mi? (gmx mindist + RMSD) |

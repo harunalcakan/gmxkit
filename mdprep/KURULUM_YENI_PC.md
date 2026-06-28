@@ -1,4 +1,4 @@
-# Dağıtım ve kurulum rehberi
+# GmxKit — Dağıtım ve kurulum rehberi
 
 ## `./md install` ne kurar?
 

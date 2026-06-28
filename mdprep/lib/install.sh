@@ -77,7 +77,7 @@ _install_report() {
     local report="${STATE_DIR}/install_report.txt"
     mkdir -p "${STATE_DIR}"
     {
-        echo "MD Prep kurulum raporu — $(date -Iseconds 2>/dev/null || date)"
+        echo "GmxKit kurulum raporu — $(date -Iseconds 2>/dev/null || date)"
         echo "WORKDIR: ${WORKDIR}"
         echo ""
         echo "--- Script kurulumu (pip/apt) ---"
@@ -106,7 +106,7 @@ _install_report() {
 }
 
 main_install() {
-    log_section "MD PREP — BAĞIMLILIK KURULUMU"
+    log_section "GmxKit — BAĞIMLILIK KURULUMU"
     log_info "WORKDIR: ${WORKDIR}"
     log_info "GROMACS otomatik kurulmaz — gmx sizin ortamınızdan kullanılır"
 

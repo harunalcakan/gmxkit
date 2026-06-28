@@ -1,6 +1,6 @@
-# GROMACS CA + Ligand MD Pipeline
+# GmxKit
 
-Protein–ligand (CA metalloenzim + Zn²⁺ + 2Q38) GROMACS hazırlık ve yerel MD kuyruğu. WSL veya Linux'ta menüden yönetilir.
+GROMACS protein–ligand MD araç seti: hazırlık, yerel kuyruk, simülasyon ve analiz. WSL veya Linux'ta `./md` menüsünden yönetilir.
 
 ## Gereksinimler
 
@@ -36,7 +36,7 @@ Detay: [mdprep/KURULUM_YENI_PC.md](mdprep/KURULUM_YENI_PC.md)
 
 ```
 ./
-├── md                 # launcher
+├── md                 # GmxKit launcher
 ├── mdprep/            # pipeline script'leri
 ├── protein.pdb
 ├── ligand.mol2
