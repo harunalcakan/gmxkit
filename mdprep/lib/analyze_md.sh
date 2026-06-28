@@ -21,7 +21,7 @@ source "${MDPREP_DIR}/lib/common.sh"
 NDX_PY="${MDPREP_DIR}/lib/ndx_tools.py"
 BIND_SH="${MDPREP_DIR}/lib/check_binding.sh"
 
-ANALYSIS_OUT_DIR="${ANALYSIS_OUT_DIR:-mdprep/logs/analysis}"
+ANALYSIS_OUT_DIR="${ANALYSIS_OUT_DIR:-${LOG_DIR}/analysis}"
 ANALYSIS_PBC_XTC="${ANALYSIS_PBC_XTC:-md_pbc.xtc}"
 ANALYSIS_FIT_GROUP="${ANALYSIS_FIT_GROUP:-Backbone}"
 ANALYSIS_CENTER_GROUP="${ANALYSIS_CENTER_GROUP:-Protein}"

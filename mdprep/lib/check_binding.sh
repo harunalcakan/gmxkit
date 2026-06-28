@@ -4,19 +4,10 @@ set -o nounset -o pipefail
 
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MDPREP_DIR="$(cd "${LIB_DIR}/.." && pwd)"
-# shellcheck source=/dev/null
-source "${MDPREP_DIR}/config.sh"
+# shellcheck source=common.sh
+source "${MDPREP_DIR}/lib/common.sh"
 
-WORKDIR="${WORKDIR:-$(cd "${MDPREP_DIR}/.." && pwd)}"
-cd "${WORKDIR}"
-
-GMX="${GMX:-gmx}"
-CHECK_BINDING="${CHECK_BINDING:-yes}"
-CHECK_BINDING_STRICT="${CHECK_BINDING_STRICT:-no}"
-CHECK_LIG_RESNAME="${CHECK_LIG_RESNAME:-2Q38}"
-CHECK_REF_TPR="${CHECK_REF_TPR:-${EM_TPR:-em.tpr}}"
-CHECK_INDEX="${CHECK_INDEX:-${INDEX_NDX:-index.ndx}}"
-CHECK_OUT_DIR="${CHECK_OUT_DIR:-mdprep/logs/binding_checks}"
+CHECK_OUT_DIR="${CHECK_OUT_DIR:-${LOG_DIR}/binding_checks}"
 
 # Eşikler (nm)
 CHECK_ZN_LIG_WARN="${CHECK_ZN_LIG_WARN:-0.35}"

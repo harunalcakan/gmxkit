@@ -9,7 +9,7 @@ source "${MDPREP_DIR}/lib/common.sh"
 # shellcheck source=sync_mdp.sh
 source "${MDPREP_DIR}/lib/sync_mdp.sh"
 
-AUDIT_REPORT="${AUDIT_REPORT:-mdprep/logs/audit_report.txt}"
+AUDIT_REPORT="${AUDIT_REPORT:-${LOG_DIR}/audit_report.txt}"
 FIX_MDP="${FIX_MDP:-no}"
 
 _audit_line() {

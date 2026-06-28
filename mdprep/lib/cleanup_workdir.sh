@@ -86,8 +86,8 @@ _collect_removable() {
         "${WORKDIR}"/topol_*.itp \
         "${WORKDIR}"/*.xvg \
         "${WORKDIR}"/#* \
-        "${WORKDIR}"/mdprep/logs/binding_checks/* \
-        "${MDPREP_DIR}/logs/binding_checks"/*; do
+        "${LOG_DIR}/binding_checks"/* \
+        "${MDPREP_DIR}/logs/binding_checks"/* 2>/dev/null; do
         [[ -e "${g}" ]] && _out+=("${g}")
     done
     shopt -u nullglob

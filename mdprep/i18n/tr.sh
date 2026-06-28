@@ -246,3 +246,11 @@ I18N_err_run_check_first='Önce ortam kontrolü: ./mdprep/run.sh check'
 I18N_err_run_protein_first='Önce protein aşaması: ./mdprep/run.sh stage 01'
 
 I18N_summary_running_marker='çalışıyor'
+
+I18N_usage_init='      init [DIR]                        — yeni proje klasörü (.gmxkit + şablonlar)'
+I18N_usage_project='      -C DIR / --project DIR           — veri dizini'
+I18N_init_copied_mdp='Şablon kopyalandı: %s'
+I18N_init_ff_link='Force field bağlandı: %s'
+I18N_init_ready='Proje hazır: %s'
+I18N_init_next_steps='Sonraki adımlar:'
+I18N_install_launcher_global='Launcher: %s  (projede: cd proje && %s check)'

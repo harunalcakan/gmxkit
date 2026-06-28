@@ -43,6 +43,11 @@ done
 log_section() { echo ""; echo "======== $* ========"; }
 
 _ensure_md_launcher() {
+    # Global install: launcher lives in GMXKIT_HOME only
+    if [[ "${WORKDIR}" != "${GMXKIT_HOME}" ]]; then
+        log_info "$(t install_launcher_global "${GMXKIT_HOME}/md" "${GMXKIT_HOME}/md")"
+        return 0
+    fi
     local launcher="${WORKDIR}/md"
     if [[ -x "${launcher}" ]]; then
         log_ok "./md zaten var"

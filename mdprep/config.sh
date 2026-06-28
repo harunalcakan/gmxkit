@@ -13,9 +13,12 @@
 # -----------------------------------------------------------------------------
 # 0) ÇALIŞMA DİZİNİ
 # -----------------------------------------------------------------------------
-# Pipeline yerinde (in-place) çalışır: girdi dosyaları bu dizindedir.
-# WORKDIR boş bırakılırsa config.sh'in bir üst klasörü (mdprep'in üstü) kullanılır.
+# WORKDIR: data directory (protein.pdb, outputs). Empty = auto (see lib/common.sh).
+#   cd ~/myproject && ~/opt/gmxkit/md     → uses ~/myproject
+#   ./md init ~/myproject                 → scaffold new project
 WORKDIR=""
+
+# Runtime logs/state live in ${WORKDIR}/.gmxkit/ (not mixed between projects).
 
 # -----------------------------------------------------------------------------
 # 0b) UI LANGUAGE (en | tr) — ./md lang tr
@@ -235,7 +238,8 @@ GROMPP_MAXWARN="15"
 # 10) ANALİZ — PBC düzeltme + RMSD/RMSF/Rg/SASA (./md analyze)
 # -----------------------------------------------------------------------------
 # trjconv: -pbc mol -ur compact -center -fit rot+trans (gruplar index.ndx'ten)
-ANALYSIS_OUT_DIR="mdprep/logs/analysis"
+# Per-project analysis output (default: ${WORKDIR}/.gmxkit/logs/analysis)
+ANALYSIS_OUT_DIR=""
 ANALYSIS_PBC_XTC="md_pbc.xtc"
 ANALYSIS_FIT_GROUP="Backbone"           # trjconv fit + ligand RMSD hizalama
 ANALYSIS_CENTER_GROUP="Protein"         # trjconv -center

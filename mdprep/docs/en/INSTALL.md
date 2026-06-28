@@ -129,6 +129,26 @@ Use the printable checklist: [FIRST_RUN_CHECKLIST.md](FIRST_RUN_CHECKLIST.md).
 
 ---
 
+## Project mode (recommended)
+
+Install GmxKit **once** (e.g. `~/opt/gmxkit`). Put the force field there. Each system uses its **own folder**; logs/checkpoints live in `.gmxkit/` inside that folder (no mixing).
+
+```bash
+cd ~/opt/gmxkit && ./md install          # once; FF folder here
+
+./md init ~/projects/ca1                 # templates + .gmxkit/
+cp protein.pdb ligand.mol2 ~/projects/ca1/
+
+cd ~/projects/ca1
+~/opt/gmxkit/md check
+~/opt/gmxkit/md
+```
+
+Optional: `gmxkit.env` in the project folder for ligand name / temperature.  
+Or: `~/opt/gmxkit/md -C ~/projects/ca1 prep`
+
+---
+
 ## Step 6 — Typical workflow
 
 1. **Prep** — menu `[P]` or `./md prep` (stages 00–06)  

@@ -29,15 +29,48 @@ source "${MDPREP_DIR}/config.sh"
 source "${MDPREP_DIR}/lib/i18n.sh"
 load_i18n
 
-# WORKDIR boşsa mdprep'in üstü (girdilerin olduğu dizin)
-if [[ -z "${WORKDIR}" ]]; then
-    WORKDIR="$(cd "${MDPREP_DIR}/.." && pwd)"
+GMXKIT_HOME="$(cd "${MDPREP_DIR}/.." && pwd)"
+export GMXKIT_HOME
+
+_resolve_workdir() {
+    local w="" cwd
+    if [[ -n "${GMXKIT_WORKDIR:-}" ]]; then
+        w="$(cd "${GMXKIT_WORKDIR}" && pwd)"
+    elif [[ -n "${WORKDIR}" ]]; then
+        w="$(cd "${WORKDIR}" && pwd)"
+    else
+        cwd="$(pwd)"
+        if [[ "${cwd}" == "${GMXKIT_HOME}" ]]; then
+            w="${GMXKIT_HOME}"
+        elif [[ -f "${cwd}/gmxkit.env" || -d "${cwd}/.gmxkit" \
+            || -f "${cwd}/protein.pdb" || -f "${cwd}/ligand.mol2" ]]; then
+            w="${cwd}"
+        else
+            w="${GMXKIT_HOME}"
+        fi
+    fi
+    printf '%s' "${w}"
+}
+
+WORKDIR="$(_resolve_workdir)"
+export GMXKIT_WORKDIR="${WORKDIR}"
+
+if [[ -f "${WORKDIR}/gmxkit.env" ]]; then
+    # shellcheck source=/dev/null
+    source "${WORKDIR}/gmxkit.env"
 fi
 
-LOG_DIR="${MDPREP_DIR}/logs"
-STATE_DIR="${MDPREP_DIR}/.state"
-BACKUP_DIR="${MDPREP_DIR}/backups"
+LOG_DIR="${WORKDIR}/.gmxkit/logs"
+STATE_DIR="${WORKDIR}/.gmxkit/state"
+BACKUP_DIR="${WORKDIR}/.gmxkit/backups"
 mkdir -p "${LOG_DIR}" "${STATE_DIR}" "${BACKUP_DIR}"
+
+_ensure_project_ff() {
+    [[ -e "${WORKDIR}/${FF_DIR}" ]] && return 0
+    [[ -d "${GMXKIT_HOME}/${FF_DIR}" ]] || return 0
+    ln -snf "${GMXKIT_HOME}/${FF_DIR}" "${WORKDIR}/${FF_DIR}"
+}
+_ensure_project_ff
 
 # Tüm gmx çıktılarının toplandığı ana log
 RUN_LOG="${LOG_DIR}/run_$(date +%Y%m%d_%H%M%S).log"
@@ -346,6 +379,7 @@ prep_confirm_gate() {
                 source "${MDPREP_DIR}/config.sh"
                 load_i18n
                 [[ -z "${WORKDIR}" ]] && WORKDIR="${_wd}"
+                export GMXKIT_WORKDIR="${WORKDIR}"
                 log_ok "$(t confirm_gate_reload)"
                 ;;
             *)

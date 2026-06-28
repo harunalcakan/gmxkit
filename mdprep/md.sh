@@ -9,6 +9,34 @@
 set -o nounset -o pipefail
 
 MDPREP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export GMXKIT_HOME="$(cd "${MDPREP_DIR}/.." && pwd)"
+
+# Global flags: -C /path  or  --project /path  (before other commands)
+MD_ARGS=()
+_md_parse_globals() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -C|--project|--workdir)
+                export GMXKIT_WORKDIR="$2"
+                shift 2
+                ;;
+            -C=*|--project=*|--workdir=*)
+                export GMXKIT_WORKDIR="${1#*=}"
+                shift
+                ;;
+            *)
+                MD_ARGS+=("$1")
+                shift
+                ;;
+        esac
+    done
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    _md_parse_globals "$@"
+    set -- "${MD_ARGS[@]}"
+fi
+
 # shellcheck source=lib/common.sh
 source "${MDPREP_DIR}/lib/common.sh"
 
@@ -67,6 +95,8 @@ $(t usage_analyze)
 $(t usage_audit)
 $(t usage_install)
 $(t usage_lang)
+$(t usage_init)
+$(t usage_project)
 
 $(t usage_workdir "${WORKDIR}")
 $(t usage_guide "$(docs_guide_path)")
@@ -508,6 +538,7 @@ main_cli() {
         analyze|analysis) bash "${ANALYZE_SH}" "$@" ;;
         audit) bash "${AUDIT_SH}" "$@" ;;
         install) bash "${INSTALL_SH}" "$@" ;;
+        init) bash "${MDPREP_DIR}/lib/init_project.sh" "${1:-.}" ;;
         lang) cmd_lang "$@" ;;
         nvt|npt|md|resume) cmd_md "${cmd}" "$@" ;;
         *) die "$(t err_unknown_cmd "${cmd}")" ;;

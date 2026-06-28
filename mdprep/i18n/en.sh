@@ -268,3 +268,12 @@ I18N_err_run_protein_first='Run protein stage first: ./mdprep/run.sh stage 01'
 
 # Summary line detection (md.sh)
 I18N_summary_running_marker='running'
+
+# Project mode (init / multi-directory)
+I18N_usage_init='      init [DIR]                        — new project folder (.gmxkit + templates)'
+I18N_usage_project='      -C DIR / --project DIR           — use that data directory'
+I18N_init_copied_mdp='Template copied: %s'
+I18N_init_ff_link='Force field linked: %s'
+I18N_init_ready='Project ready: %s'
+I18N_init_next_steps='Next steps:'
+I18N_install_launcher_global='Use launcher: %s  (from any project: cd project && %s check)'
