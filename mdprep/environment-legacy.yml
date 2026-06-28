@@ -1,0 +1,12 @@
+# Conda ortamı: cgenff_charmm2gmx_py2.py (Python 2.7 + networkx 1.11)
+# Kurulum: ./mdprep/run.sh setup --legacy
+#
+# Not: Python 2.7 EOL; yalnızca cgenff dönüştürme adımı için izole ortam.
+
+name: mdprep-cgenff
+channels:
+  - conda-forge
+dependencies:
+  - python=2.7
+  - numpy=1.16.*
+  - networkx=1.11

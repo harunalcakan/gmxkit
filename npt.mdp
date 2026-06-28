@@ -1,0 +1,43 @@
+define                  = -DPOSRES  ; Protein ve Ligand kısıtlamalarına devam
+; Run parameters
+integrator              = md
+nsteps                  = 250000     ; NPT (250000 adım, 500 ps)
+dt                      = 0.002
+; Output control
+nstenergy               = 500
+nstlog                  = 500
+nstxout-compressed      = 500
+; Bond parameters
+continuation            = yes       ; NVT'den devam ediyoruz, hızları oradan al
+constraint_algorithm    = lincs
+constraints             = h-bonds
+; Neighbor searching and vdW
+cutoff-scheme           = Verlet
+nstlist                 = 20
+rlist                   = 1.2
+vdwtype                 = cutoff
+vdw-modifier            = force-switch
+rvdw-switch             = 1.0
+rvdw                    = 1.2
+; Electrostatics
+coulombtype             = PME
+rcoulomb                = 1.2
+pme_order               = 4
+fourierspacing          = 0.16
+; Temperature coupling
+tcoupl                  = V-rescale
+tc-grps                 = Protein_ZN_LIG Solvent
+tau_t                   = 0.1   0.1
+ref_t                   = 310   310
+; Pressure coupling (Modern ve Stabil Yaklaşım)
+pcoupl                  = C-rescale ; Berendsen yerine daha modern alternatif
+pcoupltype              = isotropic
+tau_p                   = 2.0
+ref_p                   = 1.0
+compressibility         = 4.5e-5
+refcoord_scaling        = com
+; Periodic boundary conditions
+pbc                     = xyz
+DispCorr                = no 
+; Velocity generation
+gen_vel                 = no        ; NVT'den gelen hızları kullanıyoruz

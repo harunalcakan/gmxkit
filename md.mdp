@@ -1,0 +1,49 @@
+; GROMACS 2026.1 - Production MD (300 ns)
+; Run parameters
+integrator              = md
+dt                      = 0.002     ; 2 fs
+nsteps                  = 150000000     ; MD (300 ns)
+
+; Output control
+nstenergy               = 10000     ; 20 ps'de bir enerji kaydet
+nstlog                  = 10000     ; 20 ps'de bir log güncelle
+nstxout-compressed      = 500
+
+; Bond parameters
+continuation            = yes       ; NPT'den gelen hızları ve yapıyı koru
+constraint_algorithm    = lincs
+constraints             = h-bonds   ; Hidrojen bağlarını kısıtla (2 fs için şart)
+lincs_iter              = 1
+lincs_order             = 4
+
+; Neighbor searching and vdW (CHARMM36 Standartları)
+cutoff-scheme           = Verlet
+nstlist                 = 20
+rlist                   = 1.2
+vdwtype                 = cutoff
+vdw-modifier            = force-switch
+rvdw-switch             = 1.0
+rvdw                    = 1.2
+DispCorr                = no        ; CHARMM36'da force-switch ile 'no' olmalı
+
+; Electrostatics
+coulombtype             = PME
+rcoulomb                = 1.2
+pme_order               = 4
+fourierspacing          = 0.16
+
+; Temperature coupling
+tcoupl                  = V-rescale
+tc-grps                 = Protein_ZN_LIG Solvent
+tau_t                   = 0.1   0.1
+ref_t                   = 310   310
+
+; Pressure coupling (Üretim için Altın Standart)
+pcoupl                  = Parrinello-Rahman 
+pcoupltype              = isotropic
+tau_p                   = 2.0
+ref_p                   = 1.0
+compressibility         = 4.5e-5
+
+; Periodic boundary conditions
+pbc                     = xyz

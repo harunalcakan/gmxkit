@@ -1,0 +1,356 @@
+#!/usr/bin/env bash
+# =============================================================================
+# common.sh - Pipeline çapraz-kesen altyapısı
+#   * loglama (renkli + dosyaya)
+#   * güvenli komut çalıştırma (dry-run + log)
+#   * gmx sarmalayıcı (exit code + beklenen çıktı doğrulaması + log taraması)
+#   * dosya/komut varlık kontrolü
+#   * yedekleme (in-place düzenleme öncesi)
+#   * checkpoint / resume
+#   * kullanıcı kapısı (manuel adımlar için)
+#
+# Bu dosya stage script'leri tarafından "source" edilir; tek başına çalışmaz.
+# =============================================================================
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+# --- Dizinler ---------------------------------------------------------------
+# MDPREP_DIR = bu lib'in iki üst klasörü (mdprep/)
+LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MDPREP_DIR="$(cd "${LIB_DIR}/.." && pwd)"
+
+# config.sh'i yükle
+# shellcheck source=/dev/null
+source "${MDPREP_DIR}/config.sh"
+
+# WORKDIR boşsa mdprep'in üstü (girdilerin olduğu dizin)
+if [[ -z "${WORKDIR}" ]]; then
+    WORKDIR="$(cd "${MDPREP_DIR}/.." && pwd)"
+fi
+
+LOG_DIR="${MDPREP_DIR}/logs"
+STATE_DIR="${MDPREP_DIR}/.state"
+BACKUP_DIR="${MDPREP_DIR}/backups"
+mkdir -p "${LOG_DIR}" "${STATE_DIR}" "${BACKUP_DIR}"
+
+# Tüm gmx çıktılarının toplandığı ana log
+RUN_LOG="${LOG_DIR}/run_$(date +%Y%m%d_%H%M%S).log"
+
+# --- Renkler (terminal destekliyorsa) ---------------------------------------
+if [[ -t 1 ]]; then
+    C_RED=$'\033[0;31m'; C_GRN=$'\033[0;32m'; C_YLW=$'\033[1;33m'
+    C_BLU=$'\033[0;34m'; C_DIM=$'\033[2m'; C_RST=$'\033[0m'
+else
+    C_RED=""; C_GRN=""; C_YLW=""; C_BLU=""; C_DIM=""; C_RST=""
+fi
+
+# --- Loglama ----------------------------------------------------------------
+_ts() { date '+%Y-%m-%d %H:%M:%S'; }
+_log_raw() { printf '%s\n' "$*" >>"${RUN_LOG}"; }
+
+log_info() { printf '%s[INFO]%s %s\n' "${C_BLU}" "${C_RST}" "$*"; _log_raw "[$(_ts)][INFO] $*"; }
+log_ok()   { printf '%s[ OK ]%s %s\n' "${C_GRN}" "${C_RST}" "$*"; _log_raw "[$(_ts)][ OK ] $*"; }
+log_warn() { printf '%s[WARN]%s %s\n' "${C_YLW}" "${C_RST}" "$*"; _log_raw "[$(_ts)][WARN] $*"; }
+log_err()  { printf '%s[FAIL]%s %s\n' "${C_RED}" "${C_RST}" "$*" >&2; _log_raw "[$(_ts)][FAIL] $*"; }
+
+die() { log_err "$*"; exit 1; }
+
+# --- Varlık kontrolleri -----------------------------------------------------
+require_cmd() {
+    # require_cmd <komut> [açıklama]
+    command -v "$1" >/dev/null 2>&1 || die "Gerekli komut bulunamadı: '$1' ${2:+($2)}"
+}
+
+require_file() {
+    # require_file <yol> [açıklama]
+    [[ -f "$1" ]] || die "Gerekli dosya yok: '$1' ${2:+($2)}"
+}
+
+require_dir() {
+    [[ -d "$1" ]] || die "Gerekli klasör yok: '$1' ${2:+($2)}"
+}
+
+# --- Yedekleme --------------------------------------------------------------
+backup_file() {
+    # In-place düzenleme ÖNCESİ çağrılır. Zaman damgalı kopya alır.
+    local f="$1"
+    [[ -f "$f" ]] || return 0
+    local ts; ts="$(date +%Y%m%d_%H%M%S)"
+    local dest="${BACKUP_DIR}/$(basename "$f").${ts}.bak"
+    cp -p "$f" "$dest"
+    log_info "Yedek alındı: $(basename "$f") -> ${dest#"${WORKDIR}/"}"
+}
+
+# --- Güvenli komut çalıştırma ----------------------------------------------
+run_cmd() {
+    # Genel komut. DRY_RUN destekler, stdout+stderr'i loga yazar.
+    log_info "CMD: $*"
+    if [[ "${DRY_RUN}" == "yes" ]]; then
+        log_warn "DRY_RUN: çalıştırılmadı."
+        return 0
+    fi
+    if "$@" >>"${RUN_LOG}" 2>&1; then
+        return 0
+    else
+        local rc=$?
+        log_err "Komut başarısız (rc=${rc}): $*  (ayrıntı: ${RUN_LOG})"
+        return "${rc}"
+    fi
+}
+
+# --- gmx sarmalayıcı --------------------------------------------------------
+# run_gmx <açıklama> -- <gmx argümanları...> [::expect:: çıktı1 çıktı2 ...]
+# Örn: run_gmx "pdb2gmx" -- pdb2gmx -f protein.pdb -o processed.gro ::expect:: processed.gro topol.top
+run_gmx() {
+    local desc="$1"; shift
+    [[ "$1" == "--" ]] && shift
+
+    local args=(); local expect=(); local in_expect="no"
+    for a in "$@"; do
+        if [[ "$a" == "::expect::" ]]; then in_expect="yes"; continue; fi
+        if [[ "${in_expect}" == "yes" ]]; then expect+=("$a"); else args+=("$a"); fi
+    done
+
+    log_info "gmx ${desc}: ${GMX} ${args[*]}"
+    if [[ "${DRY_RUN}" == "yes" ]]; then
+        log_warn "DRY_RUN: gmx çalıştırılmadı."
+        return 0
+    fi
+
+    local gmx_log="${LOG_DIR}/gmx_${desc// /_}_$(date +%H%M%S).log"
+    "${GMX}" "${args[@]}" >"${gmx_log}" 2>&1
+    local rc=$?
+    cat "${gmx_log}" >>"${RUN_LOG}"
+
+    if [[ ${rc} -ne 0 ]] || grep -qiE 'Fatal error:' "${gmx_log}"; then
+        log_err "gmx ${desc} başarısız (rc=${rc}). Log: ${gmx_log}"
+        # GROMACS hata satırını öne çıkar
+        grep -iE 'fatal error|error|not found' "${gmx_log}" | head -n 8 || true
+        return 1
+    fi
+
+    # Beklenen çıktıların gerçekten oluştuğunu doğrula
+    local missing=0
+    for out in "${expect[@]}"; do
+        if [[ ! -s "${out}" ]]; then
+            log_err "gmx ${desc}: beklenen çıktı oluşmadı veya boş: ${out}"
+            missing=1
+        fi
+    done
+    [[ "${missing}" -eq 0 ]] || return 1
+
+    # Sessiz uyarıları rapor et
+    if grep -qiE 'warning' "${gmx_log}"; then
+        log_warn "gmx ${desc} uyarı(lar) üretti (loga bak: ${gmx_log})"
+    fi
+    log_ok "gmx ${desc} tamamlandı."
+    return 0
+}
+
+# run_gmx_stdin <açıklama> <stdin> -- <gmx argümanları...> [::expect:: dosyalar...]
+run_gmx_stdin() {
+    local desc="$1"
+    local stdin_data="$2"
+    shift 2
+    [[ "$1" == "--" ]] && shift
+
+    local args=(); local expect=(); local in_expect="no"
+    for a in "$@"; do
+        if [[ "$a" == "::expect::" ]]; then in_expect="yes"; continue; fi
+        if [[ "${in_expect}" == "yes" ]]; then expect+=("$a"); else args+=("$a"); fi
+    done
+
+    log_info "gmx ${desc} (stdin): ${GMX} ${args[*]}"
+    if [[ "${DRY_RUN}" == "yes" ]]; then
+        log_warn "DRY_RUN: gmx çalıştırılmadı."
+        return 0
+    fi
+
+    local gmx_log="${LOG_DIR}/gmx_${desc// /_}_$(date +%H%M%S).log"
+    printf '%s' "${stdin_data}" | "${GMX}" "${args[@]}" >"${gmx_log}" 2>&1
+    local rc=$?
+    cat "${gmx_log}" >>"${RUN_LOG}"
+
+    if [[ ${rc} -ne 0 ]] || grep -qiE 'Fatal error:' "${gmx_log}"; then
+        log_err "gmx ${desc} başarısız (rc=${rc}). Log: ${gmx_log}"
+        grep -iE 'fatal error|error|not found' "${gmx_log}" | head -n 8 || true
+        return 1
+    fi
+
+    local missing=0
+    for out in "${expect[@]}"; do
+        if [[ ! -s "${out}" ]]; then
+            log_err "gmx ${desc}: beklenen çıktı oluşmadı: ${out}"
+            missing=1
+        fi
+    done
+    [[ "${missing}" -eq 0 ]] || return 1
+
+    log_ok "gmx ${desc} tamamlandı."
+    return 0
+}
+
+find_python() {
+    if [[ -n "${MDPREP_PYTHON:-}" ]] && [[ -x "${MDPREP_PYTHON}" ]]; then
+        echo "${MDPREP_PYTHON}"; return 0
+    fi
+    local ptr="${MDPREP_DIR}/.venv_path"
+    if [[ -f "${ptr}" ]]; then
+        local venv_py
+        venv_py="$(<"${ptr}")/bin/python"
+        [[ -x "${venv_py}" ]] && { echo "${venv_py}"; return 0; }
+    fi
+    local venv_py="${MDPREP_DIR}/.venv/bin/python3"
+    [[ -x "${venv_py}" ]] && { echo "${venv_py}"; return 0; }
+    local venv_py2="${MDPREP_DIR}/.venv/bin/python"
+    [[ -x "${venv_py2}" ]] && { echo "${venv_py2}"; return 0; }
+    local cand
+    for cand in python3 python; do
+        command -v "$cand" >/dev/null 2>&1 && { echo "$cand"; return 0; }
+    done
+    return 1
+}
+
+resolve_cgenff_script() {
+    if [[ -n "${CGENFF_SCRIPT}" ]]; then
+        echo "${CGENFF_SCRIPT}"; return 0
+    fi
+    case "${CGENFF_BACKEND}" in
+        legacy|py2|py27) echo "${CGENFF_SCRIPT_LEGACY}" ;;
+        py3|*)           echo "${CGENFF_SCRIPT_PY3}" ;;
+    esac
+}
+
+find_cgenff_python() {
+    if [[ -n "${MDPREP_CGENFF_PYTHON:-}" ]] && [[ -x "${MDPREP_CGENFF_PYTHON}" ]]; then
+        echo "${MDPREP_CGENFF_PYTHON}"; return 0
+    fi
+    local ptr="${MDPREP_DIR}/.cgenff_python_path"
+    if [[ -f "${ptr}" ]]; then
+        local py; py="$(<"${ptr}")"
+        [[ -n "${py}" ]] && [[ -x "${py}" ]] && { echo "${py}"; return 0; }
+    fi
+    case "${CGENFF_BACKEND}" in
+        legacy|py2|py27)
+            local cand
+            for cand in \
+                "${HOME}/miniconda3/envs/${CGENFF_CONDA_ENV}/bin/python" \
+                "${HOME}/anaconda3/envs/${CGENFF_CONDA_ENV}/bin/python" \
+                "${HOME}/miniforge3/envs/${CGENFF_CONDA_ENV}/bin/python" \
+                python2.7 python2; do
+                [[ -x "${cand}" ]] && { echo "${cand}"; return 0; }
+                command -v "${cand}" >/dev/null 2>&1 && { echo "${cand}"; return 0; }
+            done
+            ;;
+        *)
+            find_python && return 0
+            ;;
+    esac
+    return 1
+}
+
+cgenff_deps_ok() {
+    local py="$1"
+    local backend="${CGENFF_BACKEND:-legacy}"
+    "${py}" -c "
+import sys
+try:
+    import numpy
+    import networkx as nx
+except ImportError as e:
+    sys.stderr.write('IMPORT_FAIL: %s\n' % e)
+    sys.exit(1)
+v = nx.__version__
+parts = [int(x) for x in v.split('.')[:2]]
+backend = '${backend}'
+if backend in ('legacy', 'py2', 'py27'):
+    if parts[0] != 1:
+        sys.stderr.write('NX_FAIL: networkx %s — legacy için 1.11 gerekli\n' % v)
+        sys.exit(2)
+    print('numpy %s networkx %s (legacy/py2)' % (numpy.__version__, v))
+else:
+    if parts[0] < 2:
+        sys.stderr.write('NX_FAIL: networkx %s — py3 backend için 2.x gerekli\n' % v)
+        sys.exit(2)
+    print('numpy %s networkx %s (py3)' % (numpy.__version__, v))
+" 2>&1
+}
+
+python_deps_ok() {
+    local py="$1"
+    "${py}" -c "import sys; print('python', sys.version.split()[0])" 2>&1
+}
+
+# --- Checkpoint / resume ----------------------------------------------------
+mark_done() { : >"${STATE_DIR}/$1.done"; log_ok "Checkpoint: $1"; }
+is_done()   { [[ -f "${STATE_DIR}/$1.done" ]]; }
+clear_done() { rm -f "${STATE_DIR}/$1.done"; }
+
+# stage_guard <stage_adı>: tamamlanmışsa atla (FORCE=1 ile zorla)
+stage_guard() {
+    local name="$1"
+    if is_done "${name}" && [[ "${FORCE:-0}" != "1" ]]; then
+        log_info "[${name}] zaten tamamlanmış, atlanıyor (yeniden için: FORCE=1)."
+        return 1
+    fi
+    return 0
+}
+
+# --- Kullanıcı kapısı (manuel adımlar) -------------------------------------
+pause_gate() {
+    # pause_gate "mesaj"  -> kullanıcıdan ENTER bekler (DRY_RUN'da geçer)
+    [[ "${DRY_RUN}" == "yes" ]] && { log_warn "DRY_RUN: kapı atlandı."; return 0; }
+    printf '\n%s>>> MANUEL ADIM:%s %s\n' "${C_YLW}" "${C_RST}" "$1"
+    read -r -p "Hazır olunca ENTER'a bas (iptal için Ctrl-C)... " _
+}
+
+confirm() {
+    # confirm "soru"  -> y/N
+    local ans
+    read -r -p "$1 [y/N] " ans
+    [[ "${ans}" =~ ^[Yy]$ ]]
+}
+
+# prep_confirm_gate "Başlık" "satır1" "satır2" ...
+# GROMACS'un interaktif sorduğu kararları config'ten gösterir; onay / iptal / config düzenle.
+prep_confirm_gate() {
+    local title="$1"
+    shift
+    [[ "${PREP_INTERACTIVE:-yes}" == "yes" ]] || return 0
+    [[ "${DRY_RUN}" == "yes" ]] && return 0
+    if [[ ! -t 0 ]]; then
+        log_info "PREP_INTERACTIVE: etkileşimli terminal yok, onay atlandı (${title})"
+        return 0
+    fi
+
+    echo ""
+    printf '╔══ %s ══╗\n' "${title}"
+    while [[ $# -gt 0 ]]; do
+        printf '  %s\n' "$1"
+        shift
+    done
+    printf '╚══════════════════════════════════════════╝\n'
+    while true; do
+        read -r -p "Devam? [Y/n/e=config düzenle/q=iptal] " ans
+        case "${ans,,}" in
+            ""|y|yes|evet) return 0 ;;
+            n|no|q|iptal) die "Hazırlık adımı iptal edildi." ;;
+            e|edit|d|duzenle)
+                local _wd="${WORKDIR}"
+                "${EDITOR:-nano}" "${MDPREP_DIR}/config.sh"
+                # shellcheck source=/dev/null
+                source "${MDPREP_DIR}/config.sh"
+                [[ -z "${WORKDIR}" ]] && WORKDIR="${_wd}"
+                log_ok "config.sh yeniden yüklendi — parametreleri kontrol edin."
+                ;;
+            *)
+                log_warn "Geçersiz: Y (devam), n/q (iptal), e (config düzenle)"
+                ;;
+        esac
+    done
+}
+
+# --- WORKDIR'e geç ----------------------------------------------------------
+cd "${WORKDIR}" || die "WORKDIR'e geçilemedi: ${WORKDIR}"

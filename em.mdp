@@ -1,0 +1,22 @@
+; GROMACS 2026.1 - Energy Minimization for CHARMM36
+integrator      = steep
+emtol           = 1000.0    ; Maksimum kuvvet 1000 kJ/mol/nm altına inince dur
+emstep          = 0.01
+nsteps                  = 5000
+
+; Neighbor searching
+nstlist         = 20        ; Performans için 20 idealdir
+cutoff-scheme   = Verlet
+pbc             = xyz
+
+; Electrostatics
+coulombtype     = PME
+rcoulomb        = 1.2
+pme-order       = 4
+
+; VdW - CHARMM36 Spesifik Ayarlar
+vdwtype         = cutoff
+vdw-modifier    = force-switch
+rvdw-switch     = 1.0       ; 1.0 nm'de sönümlemeye başla
+rvdw            = 1.2       ; 1.2 nm'de tamamen kes
+DispCorr        = no        ; CHARMM36 force-switch ile bu 'no' olmalı

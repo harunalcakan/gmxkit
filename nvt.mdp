@@ -1,0 +1,52 @@
+; nvt.mdp - NVT Equilibration
+define                  = -DPOSRES  ; Protein ve Ligand'ı sabit tut
+
+; Run parameters
+integrator              = md
+nsteps                  = 50000     ; NVT (50000 adım)
+dt                      = 0.002     ; 2 fs
+
+; Output control
+nstenergy               = 500
+nstlog                  = 500
+nstxout-compressed      = 500
+
+; Bond parameters
+continuation            = no
+constraint_algorithm    = lincs
+constraints             = h-bonds
+lincs_iter              = 1
+lincs_order             = 4
+
+; Neighbor searching and vdW (CHARMM36 Standartları)
+cutoff-scheme           = Verlet
+nstlist                 = 20
+rlist                   = 1.2
+vdwtype                 = cutoff
+vdw-modifier            = force-switch
+rvdw-switch             = 1.0
+rvdw                    = 1.2
+
+; Electrostatics
+coulombtype             = PME
+rcoulomb                = 1.2
+pme_order               = 4
+fourierspacing          = 0.16
+
+; Temperature coupling
+tcoupl                  = V-rescale
+tc-grps                 = Protein_ZN_LIG Solvent
+tau_t                   = 0.1   0.1
+ref_t                   = 310   310
+
+; Pressure coupling
+pcoupl                  = no        ; NVT'de basınç kontrolü olmaz
+
+; Periodic boundary conditions
+pbc                     = xyz
+DispCorr                = no 
+
+; Velocity generation
+gen_vel                 = yes
+gen_temp                = 310
+gen_seed                = -1

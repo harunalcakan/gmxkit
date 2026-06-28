@@ -1,0 +1,5 @@
+# Pipeline yardımcıları (gro_tools, top_tools, ndx_tools) — yalnızca Python 3 stdlib
+# cgenff legacy modunda py2.7 ayrı conda env'de (environment-legacy.yml)
+
+# Boş / opsiyonel — sistem python3 yeterli.
+# İleride py3-only araç eklenirse buraya yazılır.

@@ -1,0 +1,14 @@
+# Conda alternatifi (opsiyonel):
+#   conda env create -f mdprep/environment.yml
+#   conda activate mdprep
+#
+# GROMACS conda ile gelmez; sistem kurulumu veya modül ayrı gerekir.
+
+name: mdprep
+channels:
+  - conda-forge
+dependencies:
+  - python>=3.8,<3.13
+  - numpy>=1.20
+  - networkx=2.3
+  - perl

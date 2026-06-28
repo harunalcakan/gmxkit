@@ -1,0 +1,8 @@
+.venv/
+.cgenff_python_path
+.venv_path
+__pycache__/
+*.pyc
+logs/
+.state/
+backups/

@@ -1,0 +1,9 @@
+# mdprep pipeline Python bağımlılıkları
+# cgenff_charmm2gmx_py3_nx2.py: Python 3 + networkx 2.x
+#
+# networkx 2.3 -> Python < 3.10 (fractions.gcd kaldırıldı)
+# networkx 2.5+ -> Python 3.10+ (cgenff script uyarı verebilir ama çalışır)
+
+numpy>=1.20,<3
+networkx==2.3; python_version < "3.10"
+networkx>=2.5,<3; python_version >= "3.10"
