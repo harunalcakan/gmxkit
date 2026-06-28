@@ -43,8 +43,8 @@ prompt_value() {
 prompt_edit_mdp() {
     local mdp="$1"
     local answer=""
-    read -r -p "MDP dosyasını editörde aç? (e/H): " answer
-    if [[ "${answer,,}" == "e" || "${answer,,}" == "evet" ]]; then
+    read -r -p "$(t mdp_prompt_edit)" answer
+    if [[ "${answer,,}" == "e" || "${answer,,}" == "evet" || "${answer,,}" == "yes" ]]; then
         "${EDITOR:-nano}" "${mdp}"
     fi
 }
@@ -68,21 +68,21 @@ configure_mdp_nvt() {
     ref_t="$(mdp_read_value ref_t "${mdp}")"
 
     echo ""
-    echo "=== NVT: ${mdp} ==="
-    echo "Mevcut: ${ps} ps @ ${ref_t} K (nsteps=${nsteps}, dt=${MDP_DT} ps)"
+    printf '%s\n' "$(t mdp_nvt_hdr "${mdp}")"
+    printf '%s\n' "$(t mdp_current_nvt "${ps}" "${ref_t}" "${nsteps}" "${MDP_DT}")"
 
     if [[ "${INTERACTIVE:-yes}" != "yes" ]]; then
         return 0
     fi
 
-    new_ps="$(prompt_value "Süre (ps)" "${ps}")"
-    new_t="$(prompt_value "Sıcaklık (K) — ref_t / gen_temp" "${ref_t}")"
+    new_ps="$(prompt_value "$(t mdp_prompt_ps)" "${ps}")"
+    new_t="$(prompt_value "$(t mdp_prompt_temp)" "${ref_t}")"
     nsteps="$(mdp_ps_to_nsteps "${new_ps}")"
 
     mdp_set_scalar nsteps "${mdp}" "${nsteps}"
     _set_temp_mdp "${mdp}" "${new_t}"
 
-    echo "→ nsteps=${nsteps} (${new_ps} ps), T=${new_t} K"
+    printf '%s\n' "$(t mdp_result_nvt "${nsteps}" "${new_ps}" "${new_t}")"
     prompt_edit_mdp "${mdp}"
 }
 
@@ -99,16 +99,16 @@ configure_mdp_npt() {
     ref_p="${ref_p:-1.0}"
 
     echo ""
-    echo "=== NPT: ${mdp} ==="
-    echo "Mevcut: ${ps} ps @ ${ref_t} K, ref_p=${ref_p} bar (nsteps=${nsteps})"
+    printf '%s\n' "$(t mdp_npt_hdr "${mdp}")"
+    printf '%s\n' "$(t mdp_current_npt "${ps}" "${ref_t}" "${ref_p}" "${nsteps}")"
 
     if [[ "${INTERACTIVE:-yes}" != "yes" ]]; then
         return 0
     fi
 
-    new_ps="$(prompt_value "Süre (ps)" "${ps}")"
-    new_t="$(prompt_value "Sıcaklık (K)" "${ref_t}")"
-    new_p="$(prompt_value "Basınç ref_p (bar)" "${ref_p}")"
+    new_ps="$(prompt_value "$(t mdp_prompt_ps)" "${ps}")"
+    new_t="$(prompt_value "$(t mdp_prompt_temp_short)" "${ref_t}")"
+    new_p="$(prompt_value "$(t mdp_prompt_pressure)" "${ref_p}")"
     nsteps="$(mdp_ps_to_nsteps "${new_ps}")"
 
     mdp_set_scalar nsteps "${mdp}" "${nsteps}"
@@ -117,7 +117,7 @@ configure_mdp_npt() {
         mdp_set_scalar ref_p "${mdp}" "${new_p}"
     fi
 
-    echo "→ nsteps=${nsteps} (${new_ps} ps), T=${new_t} K, P=${new_p} bar"
+    printf '%s\n' "$(t mdp_result_npt "${nsteps}" "${new_ps}" "${new_t}" "${new_p}")"
     prompt_edit_mdp "${mdp}"
 }
 
@@ -132,20 +132,20 @@ configure_mdp_md() {
     ref_t="$(mdp_read_value ref_t "${mdp}")"
 
     echo ""
-    echo "=== Production MD: ${mdp} ==="
-    echo "Mevcut: ${ns} ns @ ${ref_t} K (nsteps=${nsteps})"
+    printf '%s\n' "$(t mdp_md_hdr "${mdp}")"
+    printf '%s\n' "$(t mdp_current_md "${ns}" "${ref_t}" "${nsteps}")"
 
     if [[ "${INTERACTIVE:-yes}" != "yes" ]]; then
         return 0
     fi
 
-    new_ns="$(prompt_value "Süre (ns)" "${ns}")"
-    new_t="$(prompt_value "Sıcaklık (K)" "${ref_t}")"
+    new_ns="$(prompt_value "$(t mdp_prompt_ns)" "${ns}")"
+    new_t="$(prompt_value "$(t mdp_prompt_temp_short)" "${ref_t}")"
     nsteps="$(mdp_ns_to_nsteps "${new_ns}")"
 
     mdp_set_scalar nsteps "${mdp}" "${nsteps}"
     _set_temp_mdp "${mdp}" "${new_t}"
 
-    echo "→ nsteps=${nsteps} (${new_ns} ns), T=${new_t} K"
+    printf '%s\n' "$(t mdp_result_md "${nsteps}" "${new_ns}" "${new_t}")"
     prompt_edit_mdp "${mdp}"
 }

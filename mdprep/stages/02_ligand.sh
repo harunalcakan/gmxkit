@@ -14,8 +14,8 @@ STAGE="02_ligand"
 
 stage_guard "${STAGE}" || exit 0
 
-is_done "00_check_env" || die "Önce ortam kontrolü: ./mdprep/run.sh check"
-is_done "01_protein"   || die "Önce protein aşaması: ./mdprep/run.sh stage 01"
+is_done "00_check_env" || die "$(t err_run_check_first)"
+is_done "01_protein"   || die "$(t err_run_protein_first)"
 
 log_info "================ LİGAND TOPOLOJİSİ ================"
 
@@ -72,11 +72,7 @@ fi
 if [[ -f "${LIG_STR_FILE}" ]]; then
     log_ok "CGenFF stream mevcut: ${LIG_STR_FILE}"
 else
-    pause_gate "CGenFF adımı:
-  1) '${LIGAND_MOL2_SORTED}' dosyasını yükle: ${CGENFF_URL}
-  2) RESI adı '${LIG_RESNAME}' olmalı (mol2 ile aynı).
-  3) 'Include parameters that are already in CGenFF' SEÇME.
-  4) İndirilen .str dosyasını '${LIG_STR}' olarak WORKDIR'e kaydet."
+    pause_gate "$(t cgenff_pause "${LIGAND_MOL2_SORTED}" "${CGENFF_URL}" "${LIG_RESNAME}" "${LIG_STR}")"
 fi
 
 require_file "${LIG_STR_FILE}" "CGenFF stream dosyası"
@@ -87,11 +83,11 @@ if ! grep -qiE "RESI[[:space:]]+${LIG_RESNAME}([[:space:]]|;|$)" "${LIG_STR}"; t
 fi
 log_ok "${LIG_STR} doğrulandı (RESI ${LIG_RESNAME})."
 
-prep_confirm_gate "CGenFF — ligand parametreleri" \
-    "Ligand RESI    : ${LIG_RESNAME}  (mol2 + .str ile aynı olmalı)" \
-    "Stream dosyası : ${LIG_STR}" \
-    "Force field    : ${FF_DIR}" \
-    "Çıktılar       : ${LIG_ITP}, ${LIG_PRM}, ${LIG_INI_PDB}"
+prep_confirm_gate "$(t gate_cgenff)" \
+    "$(t gate_lig_resi "${LIG_RESNAME}")" \
+    "$(t gate_stream "${LIG_STR}")" \
+    "$(t gate_ff_dir "${FF_DIR}")" \
+    "$(t gate_outputs "${LIG_ITP}" "${LIG_PRM}" "${LIG_INI_PDB}")"
 
 # --- 3) cgenff -> GROMACS itp/prm/pdb ---------------------------------------
 log_info "--- cgenff dönüştürme ---"

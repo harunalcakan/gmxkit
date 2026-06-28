@@ -69,7 +69,7 @@ _confirm_apt() {
     if [[ "${ASSUME_YES}" -eq 1 ]]; then
         return 0
     fi
-    read -r -p "Devam? [Y/n] " ans
+    read -r -p "$(t install_confirm_apt)" ans
     [[ ! "${ans,,}" == "n" && ! "${ans,,}" == "no" && ! "${ans,,}" == "hayir" ]]
 }
 
@@ -77,10 +77,10 @@ _install_report() {
     local report="${STATE_DIR}/install_report.txt"
     mkdir -p "${STATE_DIR}"
     {
-        echo "GmxKit kurulum raporu — $(date -Iseconds 2>/dev/null || date)"
+        echo "$(t install_report_title "$(date -Iseconds 2>/dev/null || date)")"
         echo "WORKDIR: ${WORKDIR}"
         echo ""
-        echo "--- Script kurulumu (pip/apt) ---"
+        echo "$(t install_report_script)"
         if PY="$(find_python 2>/dev/null)"; then echo "  OK  python: ${PY}"; else echo "  EKSIK  python3"; fi
         command -v perl >/dev/null 2>&1 && echo "  OK  perl" || echo "  EKSIK  perl"
         if [[ -f "${MDPREP_DIR}/.cgenff_python_path" ]]; then
@@ -89,26 +89,26 @@ _install_report() {
             echo "  EKSIK  cgenff venv"
         fi
         echo ""
-        echo "--- Kullanıcı kurar (script dokunmaz) ---"
+        echo "$(t install_report_user)"
         if command -v "${GMX}" >/dev/null 2>&1; then
             echo "  OK  gmx (${GMX}): $(command -v "${GMX}")"
         else
             echo "  EKSIK  gmx — siz kurun; config.sh → GMX=..."
         fi
         echo ""
-        echo "--- Proje paketi ---"
+        echo "$(t install_report_pkg)"
         for f in "${PROTEIN_PDB}" "${LIGAND_MOL2}" em.mdp nvt.mdp npt.mdp md.mdp; do
             [[ -f "${WORKDIR}/${f}" ]] && echo "  OK  ${f}" || echo "  EKSIK  ${f}"
         done
         [[ -d "${WORKDIR}/${FF_DIR}" ]] && echo "  OK  ${FF_DIR}/" || echo "  EKSIK  ${FF_DIR}/"
     } | tee "${report}"
-    log_info "Rapor: ${report}"
+    log_info "$(t install_report_path "${report}")"
 }
 
 main_install() {
-    log_section "GmxKit — BAĞIMLILIK KURULUMU"
+    log_section "$(t install_title)"
     log_info "WORKDIR: ${WORKDIR}"
-    log_info "GROMACS otomatik kurulmaz — gmx sizin ortamınızdan kullanılır"
+    log_info "$(t install_gmx_note)"
 
     find "${MDPREP_DIR}" -type f -name '*.sh' -exec sed -i 's/\r$//' {} + 2>/dev/null || true
     chmod +x "${MDPREP_DIR}/run.sh" "${MDPREP_DIR}/setup_env.sh" "${MDPREP_DIR}/md.sh" \
@@ -120,30 +120,30 @@ main_install() {
     [[ "${RECREATE}" -eq 1 ]] && setup_args+=(--recreate)
 
     if _confirm_apt; then
-        log_section "APT (python3, perl — gmx yok)"
-        bash "${MDPREP_DIR}/setup_env.sh" --system "${setup_args[@]}" || log_warn "apt adımı kısmen başarısız"
+        log_section "$(t install_apt_section)"
+        bash "${MDPREP_DIR}/setup_env.sh" --system "${setup_args[@]}" || log_warn "apt step partially failed"
     fi
 
-    log_section "PIP (Python venv — cgenff)"
+    log_section "$(t install_pip_section)"
     bash "${MDPREP_DIR}/setup_env.sh" --py3 "${setup_args[@]}"
 
     mkdir -p "${STATE_DIR}"
     date -Iseconds > "${STATE_DIR}/.installed" 2>/dev/null || date > "${STATE_DIR}/.installed"
 
-    log_section "ORTAM DENETİMİ"
-    bash "${MDPREP_DIR}/run.sh" check || log_warn "Bazı kontroller başarısız (rapor)"
+    log_section "$(t install_check_section)"
+    bash "${MDPREP_DIR}/run.sh" check || log_warn "$(t install_warn_check)"
 
     _install_report
 
     if ! command -v "${GMX}" >/dev/null 2>&1; then
-        log_warn "gmx PATH'te yok — GROMACS'ı siz kurun; config.sh içinde GMX= yolunu ayarlayın"
+        log_warn "$(t install_warn_gmx)"
     fi
 
     echo ""
     echo "════════════════════════════════════════════════════════════"
-    echo "  Script bağımlılıkları kuruldu →  ./md"
-    echo "  GROMACS: sizin kurulumunuz (config.sh → GMX=)"
-    echo "  Rehber: mdprep/KURULUM_YENI_PC.md"
+    echo "$(t install_done_banner)"
+    echo "$(t install_done_gmx)"
+    echo "$(t install_done_guide "$(docs_guide_path)")"
     echo "════════════════════════════════════════════════════════════"
 }
 

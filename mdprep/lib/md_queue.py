@@ -17,6 +17,11 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+_LIB = Path(__file__).resolve().parent
+if str(_LIB) not in sys.path:
+    sys.path.insert(0, str(_LIB))
+from queue_i18n import t  # noqa: E402
+
 PHASES = ("em", "nvt", "npt", "md")
 PREV_PHASE = {"nvt": "em", "npt": "nvt", "md": "npt"}
 
@@ -285,7 +290,7 @@ def submit_phase(
     confirm: bool = True,
 ) -> int:
     if phase not in PHASES:
-        print(f"[!] Bilinmeyen faz: {phase} (em|nvt|npt|md)", file=sys.stderr)
+        print(t("unknown_phase", phase=phase), file=sys.stderr)
         return 1
 
     p = paths()
@@ -295,24 +300,24 @@ def submit_phase(
 
     for job in jobs:
         if job.get("phase") == phase and job.get("status") == "Running":
-            print(f"[!] {phase.upper()} zaten çalışıyor: {job['job_id']} (PID {job.get('pid')})")
+            print(t("already_running", phase=phase.upper(), job_id=job['job_id'], pid=job.get('pid')))
             return 1
 
     out_file = workdir / expected_output(phase, cfg)
     if out_file.exists():
         ans = "y"
         if confirm:
-            ans = input(f"[!] {out_file.name} zaten var — yeniden çalıştır? [y/N] ").strip().lower()
+            ans = input(t("rerun_prompt", name=out_file.name)).strip().lower()
         if ans not in ("y", "yes", "e", "evet"):
-            print("İptal.")
+            print(t("cancelled"))
             return 0
 
     if confirm:
-        print(f"\n--- Kuyruğa: {phase.upper()} ---")
+        print(t("submit_hdr", phase=phase.upper()))
         print(f"  WORKDIR: {workdir}")
-        ans = input("Gönder? [Y/n] ").strip().lower()
+        ans = input(t("submit_confirm")).strip().lower()
         if ans in ("n", "no", "h", "hayir", "hayır"):
-            print("İptal.")
+            print(t("cancelled"))
             return 0
 
     job_id = next_job_id(jobs, phase)
@@ -355,18 +360,18 @@ def submit_phase(
     jobs.append(job)
     save_jobs(p["jobs_file"], jobs)
 
-    print(f"[+] Gönderildi: {phase.upper()}  job={job_id}  PID={proc.pid}")
-    print(f"    log: {log_file}")
-    print(f"    izle: ./md queue status   |   tail -f {log_file}")
+    print(t("submitted", phase=phase.upper(), job_id=job_id, pid=proc.pid))
+    print(t("log_line", log=log_file))
+    print(t("watch_line", log=log_file))
     return 0
 
 
 def submit_chain(*, confirm: bool = True) -> int:
     if confirm:
-        print("\nZincir: EM → NVT → NPT → MD (her adım öncekinin bitmesini bekler)")
-        ans = input("Tüm zincir kuyruğa gönderilsin mi? [Y/n] ").strip().lower()
+        print(t("chain_hdr"))
+        ans = input(t("chain_confirm")).strip().lower()
         if ans in ("n", "no", "h", "hayir", "hayır"):
-            print("İptal.")
+            print(t("cancelled"))
             return 0
 
     wait_for: str | None = None
@@ -378,7 +383,7 @@ def submit_chain(*, confirm: bool = True) -> int:
         jobs = load_jobs(paths()["jobs_file"])
         last_id = jobs[-1]["job_id"]
         wait_for = last_id
-    print(f"[+] Zincir gönderildi. Son job: {last_id}")
+    print(t("chain_done", job_id=last_id))
     return 0
 
 
@@ -389,11 +394,11 @@ def print_status_table(jobs: list[dict[str, Any]], *, refresh_running: bool = Tr
         if refresh_jobs(jobs, p["workdir"], cfg):
             save_jobs(p["jobs_file"], jobs)
 
-    print("\n--- Job Status ---")
-    print(f"{'Job':<8}{'Faz':<6}{'Status':<10}{'PID':<8}{'Start':<20}{'Elapsed':<12}Log")
+    print(t("status_hdr"))
+    print(t("status_cols", job="Job", phase="Phase", status="Status", pid="PID", start="Start", elapsed="Elapsed"))
     print("-" * 95)
     if not jobs:
-        print("(henüz job yok — ./md queue submit em)")
+        print(t("no_jobs"))
         return
 
     for job in jobs:
@@ -429,14 +434,19 @@ def cmd_summary() -> int:
             f"{j['job_id']} ({j.get('phase', '?').upper()}, {j.get('duration') or '…'})"
             for j in running
         )
-        print(f"{len(running)} çalışıyor — {detail}  (toplam {total} job)")
+        print(t("summary_running", n=len(running), detail=detail, total=total))
     elif total == 0:
-        print("henüz job yok")
+        print(t("summary_empty"))
     else:
         last = jobs[-1]
         print(
-            f"boşta — son: {last.get('job_id')} "
-            f"{last.get('phase', '?').upper()} → {last.get('status')}  (toplam {total})"
+            t(
+                "summary_idle",
+                job_id=last.get("job_id"),
+                phase=last.get("phase", "?").upper(),
+                status=last.get("status"),
+                total=total,
+            )
         )
     return 0
 
@@ -461,7 +471,7 @@ def cmd_status(watch: bool = False, interval: float = 5.0) -> int:
         jobs = load_jobs(p["jobs_file"])
         print_status_table(jobs)
         running = sum(1 for j in jobs if j.get("status") == "Running")
-        print(f"\nÇalışan: {running} / Toplam: {len(jobs)}")
+        print(t("running_count", running=running, total=len(jobs)))
         if not watch:
             break
         if running == 0:
@@ -469,7 +479,7 @@ def cmd_status(watch: bool = False, interval: float = 5.0) -> int:
         try:
             time.sleep(interval)
         except KeyboardInterrupt:
-            print("\n(izleme durdu)")
+            print(t("watch_stopped"))
             break
         print("\033[2J\033[H", end="")  # clear screen
     return 0
@@ -483,7 +493,7 @@ def cmd_wait(job_id: str, timeout: float | None = None) -> int:
         jobs = load_jobs(p["jobs_file"])
         job = next((j for j in jobs if j.get("job_id") == job_id), None)
         if not job:
-            print(f"[!] Job bulunamadı: {job_id}", file=sys.stderr)
+            print(t("job_not_found", job_id=job_id), file=sys.stderr)
             return 1
         refresh_jobs(jobs, p["workdir"], cfg)
         save_jobs(p["jobs_file"], jobs)
@@ -491,10 +501,10 @@ def cmd_wait(job_id: str, timeout: float | None = None) -> int:
         if st == "Finished":
             return 0
         if st in ("Failed", "Aborted", "Crashed"):
-            print(f"[!] Önceki job başarısız: {job_id} ({st})", file=sys.stderr)
+            print(t("prev_job_failed", job_id=job_id, status=st), file=sys.stderr)
             return 1
         if timeout and (time.time() - start) > timeout:
-            print(f"[!] Zaman aşımı: {job_id}", file=sys.stderr)
+            print(t("timeout", job_id=job_id), file=sys.stderr)
             return 1
         time.sleep(15)
 
@@ -509,7 +519,7 @@ def cmd_wait_all(timeout: float | None = None) -> int:
             break
         time.sleep(1)
     else:
-        print("[!] jobs.json boş veya yok — kuyruk gönderilmedi?", file=sys.stderr)
+        print(t("jobs_empty"), file=sys.stderr)
         return 1
 
     def _active_failures(jobs: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -534,15 +544,12 @@ def cmd_wait_all(timeout: float | None = None) -> int:
         failed = _active_failures(jobs)
         if failed and not running:
             j = failed[-1]
-            print(
-                f"[!] Başarısız job: {j.get('job_id')} ({j.get('status')})",
-                file=sys.stderr,
-            )
+            print(t("failed_job", job_id=j.get("job_id"), status=j.get("status")), file=sys.stderr)
             return 1
         if not running:
             return 0
         if timeout and (time.time() - start) > timeout:
-            print("[!] wait-all zaman aşımı", file=sys.stderr)
+            print(t("wait_all_timeout"), file=sys.stderr)
             return 1
         time.sleep(15)
 
@@ -554,13 +561,13 @@ def cmd_abort(job_id: str) -> int:
     targets = jobs if job_id.lower() == "all" else [j for j in jobs if j.get("job_id") == job_id]
 
     if not targets and job_id.lower() != "all":
-        print(f"[!] Job bulunamadı: {job_id}")
+        print(t("job_not_found", job_id=job_id))
         return 1
 
     for job in targets:
         if job.get("status") != "Running":
             if job_id.lower() != "all":
-                print(f"[i] Çalışmıyor: {job.get('job_id')}")
+                print(t("not_running", job_id=job.get("job_id")))
             continue
         pid = job.get("pid")
         try:
@@ -570,15 +577,15 @@ def cmd_abort(job_id: str) -> int:
             job["end_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             ts = job.get("start_timestamp", time.time())
             job["duration"] = format_duration(time.time() - ts)
-            print(f"[-] İptal: {job.get('job_id')} (PID {pid})")
+            print(t("aborted", job_id=job.get("job_id"), pid=pid))
             found = True
         except OSError as exc:
-            print(f"[!] İptal edilemedi {job.get('job_id')}: {exc}")
+            print(t("abort_failed", job_id=job.get("job_id"), exc=exc))
 
     if found or job_id.lower() == "all":
         save_jobs(p["jobs_file"], jobs)
     elif not found:
-        print("[!] Çalışan eşleşen job yok.")
+        print(t("no_running_match"))
         return 1
     return 0
 
@@ -587,7 +594,7 @@ def cmd_tail(job_id: str | None = None) -> int:
     p = paths()
     jobs = load_jobs(p["jobs_file"])
     if not jobs:
-        print("Job yok.")
+        print(t("no_jobs_short"))
         return 1
     if not job_id:
         running = [j for j in jobs if j.get("status") == "Running"]
@@ -595,11 +602,11 @@ def cmd_tail(job_id: str | None = None) -> int:
     else:
         job = next((j for j in jobs if j.get("job_id") == job_id), None)
         if not job:
-            print(f"Job yok: {job_id}")
+            print(t("no_job_id", job_id=job_id))
             return 1
     log = job.get("log_file")
     if not log or not Path(log).exists():
-        print(f"Log yok: {log}")
+        print(t("no_log", log=log))
         return 1
     subprocess.run(["tail", "-f", log])
     return 0
@@ -614,26 +621,26 @@ def interactive_menu() -> int:
         running = sum(1 for j in jobs if j.get("status") == "Running")
 
         print("\n╔══════════════════════════════════════════╗")
-        print("║  KUYRUK (yerel iş istasyonu)             ║")
+        print(f"║{t('menu_title')}║")
         print("╚══════════════════════════════════════════╝")
         print(f"  WORKDIR: {p['workdir']}")
-        print(f"  Çalışan: {running}  |  Toplam: {len(jobs)}  |  kayıt: {p['jobs_file']}")
+        print(t("menu_stats", running=running, total=len(jobs), jobs_file=p["jobs_file"]))
         print("")
-        print("  1) EM gönder")
-        print("  2) NVT gönder")
-        print("  3) NPT gönder")
-        print("  4) MD gönder")
-        print("  5) Zincir (EM→NVT→NPT→MD, sıralı)")
-        print("  6) Job durumu")
-        print("  7) Job iptal")
-        print("  8) Tüm job listesi")
-        print("  9) Canlı izle (5 sn)")
-        print("  t) Log tail (son çalışan)")
-        print("  0) Ana menü")
+        print(t("menu_em"))
+        print(t("menu_nvt"))
+        print(t("menu_npt"))
+        print(t("menu_md"))
+        print(t("menu_chain"))
+        print(t("menu_status"))
+        print(t("menu_cancel"))
+        print(t("menu_list"))
+        print(t("menu_watch"))
+        print(t("menu_tail"))
+        print(t("menu_back"))
         rec = recommend_phase(p["workdir"], gmx_settings())
         if rec != "done":
-            print(f"\n  Öneri: {rec.upper()} gönder (seçenek {PHASES.index(rec)+1})")
-        choice = input("Seçim: ").strip().lower()
+            print(t("menu_rec", phase=rec.upper(), opt=PHASES.index(rec) + 1))
+        choice = input(t("menu_prompt")).strip().lower()
 
         if choice == "0":
             return 0
@@ -650,7 +657,7 @@ def interactive_menu() -> int:
         elif choice == "6":
             cmd_status()
         elif choice == "7":
-            jid = input("Job ID (veya all): ").strip()
+            jid = input(t("job_id_prompt")).strip()
             if jid:
                 cmd_abort(jid)
         elif choice == "8":
@@ -660,8 +667,8 @@ def interactive_menu() -> int:
         elif choice == "t":
             cmd_tail()
         else:
-            print("Geçersiz seçim.")
-        input("\n↵ ENTER... ")
+            print(t("invalid_choice"))
+        input(t("enter_pause"))
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -704,7 +711,7 @@ def main(argv: list[str] | None = None) -> int:
             "status [-w] | summary | recommend | abort ID|all | wait ID | tail [ID]"
         )
         return 0
-    print(f"Bilinmeyen: {cmd}. ./md queue help", file=sys.stderr)
+    print(t("unknown_cmd", cmd=cmd), file=sys.stderr)
     return 1
 
 

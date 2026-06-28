@@ -1,60 +1,72 @@
 # GmxKit
 
-GROMACS protein–ligand MD araç seti: hazırlık, yerel kuyruk, simülasyon ve analiz. WSL veya Linux'ta `./md` menüsünden yönetilir.
+GROMACS protein–ligand MD toolkit: prep, local job queue, simulation, and analysis. Menu-driven via `./md` on WSL/Linux.
 
-## Gereksinimler
-
-| Siz kurarsınız | `./md install` kurar |
-|----------------|----------------------|
-| **GROMACS** (`gmx`) | Python venv (numpy, networkx) |
-| Force field klasörü (`charmm36-*.ff`) | `./md` launcher |
-| `protein.pdb`, `ligand.mol2`, `*.mdp` | — |
-
-Detay: [mdprep/KURULUM_YENI_PC.md](mdprep/KURULUM_YENI_PC.md)
-
-## Hızlı başlangıç
+**Default UI language: English.** Switch anytime:
 
 ```bash
-# 1) Force field'i proje köküne koyun (charmm36-feb2026_ljpme_cgenff-5.0.ff)
-# 2) GROMACS PATH'te olsun (config.sh → GMX="gmx")
+./md lang tr    # Turkish menus
+./md lang en    # English (default)
+```
+
+Language is saved in `mdprep/config.sh` (`MDLANG=en|tr`).
+
+## Requirements
+
+| You install | `./md install` provides |
+|-------------|-------------------------|
+| **GROMACS** (`gmx`) | Python venv (numpy, networkx) |
+| Force field (`charmm36-*.ff`) | `./md` launcher |
+| `protein.pdb`, `ligand.mol2`, `*.mdp` | — |
+
+Details: [mdprep/KURULUM_YENI_PC.md](mdprep/KURULUM_YENI_PC.md)
+
+## Quick start
+
+```bash
+# 1) Place force field in project root
+# 2) Ensure gmx is on PATH (config.sh → GMX="gmx")
 ./md install
 ./md
 ```
 
-## Komutlar
+## Commands
 
-| Komut | Açıklama |
-|-------|----------|
-| `./md` | Menü (J=kuyruk, S=simülasyon, P=hazırlık, L=analiz) |
-| `./md prep` | Hazırlık aşamaları 00–06 |
-| `./md queue chain` | EM → NVT → NPT → MD kuyruğu |
+| Command | Description |
+|---------|-------------|
+| `./md` | Interactive menu |
+| `./md prep` | Prep stages 00–06 |
+| `./md queue chain` | Queue EM → NVT → NPT → MD |
 | `./md analyze` | PBC + RMSD/RMSF/Rg/SASA |
-| `./md audit` | Hazırlık denetimi |
-| `./md install` | Python bağımlılıkları (GROMACS kurmaz) |
+| `./md audit` | Prep validation |
+| `./md install` | Python dependencies (no GROMACS) |
+| `./md lang en\|tr` | UI language |
 
-## Dizin yapısı
+## Project layout
 
 ```
 ./
 ├── md                 # GmxKit launcher
-├── mdprep/            # pipeline script'leri
+├── mdprep/            # pipeline scripts
+│   ├── i18n/          # en.sh, tr.sh UI strings
+│   └── docs/en|tr/    # user guides
 ├── protein.pdb
 ├── ligand.mol2
 ├── *.mdp
-├── cgenff_*.py
-└── charmm36-....ff/   # ayrı indirin (repo'da yok)
+└── charmm36-....ff/   # not in git — add locally
 ```
 
-## Taşınabilir paket
+## Portable package
 
 ```bash
-bash mdprep/export_portable.sh /hedef/klasor
+bash mdprep/export_portable.sh /target/dir
 ```
 
-`.venv`, log ve simülasyon çıktıları hariç kopyalar.
+Excludes `.venv`, logs, and simulation outputs.
 
-## Dokümantasyon
+## Documentation
 
-- [KULLANIM.md](mdprep/KULLANIM.md) — menü ve akış
-- [PROJECT.md](mdprep/PROJECT.md) — mimari ve kararlar
-- [ANALYSIS.md](mdprep/ANALYSIS.md) — analiz tarifi
+- [docs/en/USAGE.md](mdprep/docs/en/USAGE.md) — English guide
+- [docs/tr/KULLANIM.md](mdprep/docs/tr/KULLANIM.md) — Turkish guide
+- [PROJECT.md](mdprep/PROJECT.md) — architecture
+- [ANALYSIS.md](mdprep/ANALYSIS.md) — analysis workflow

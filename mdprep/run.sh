@@ -41,8 +41,8 @@ source "${MDPREP_DIR}/lib/common.sh"
 run_stage() {
     local name="$1"
     local script="${STAGES_DIR}/${name}.sh"
-    [[ -f "${script}" ]] || die "Aşama script'i yok: ${script}"
-    log_info "######## AŞAMA: ${name} ########"
+    [[ -f "${script}" ]] || die "$(t run_err_script "${script}")"
+    log_info "$(t run_stage_hdr "${name}")"
     bash "${script}"
 }
 
@@ -56,18 +56,18 @@ case "${cmd}" in
         bash "${MDPREP_DIR}/setup_env.sh" "$@"
         ;;
     list)
-        printf '\n%-20s %s\n' "AŞAMA" "DURUM"
+        printf '\n%-20s %s\n' "$(t run_list_stage)" "$(t run_list_status)"
         printf '%-20s %s\n' "--------------------" "------"
         for s in "${STAGES[@]}"; do
-            if is_done "${s}"; then st="${C_GRN}tamamlandı${C_RST}"; else st="${C_DIM}bekliyor${C_RST}"; fi
+            if is_done "${s}"; then st="${C_GRN}$(t run_done)${C_RST}"; else st="${C_DIM}$(t run_pending)${C_RST}"; fi
             printf '%-20s %b\n' "${s}" "${st}"
         done
         echo
         ;;
     reset)
-        if confirm "Tüm checkpoint'ler silinsin mi? (üretilen dosyalara DOKUNULMAZ)"; then
+        if confirm "$(t run_reset_confirm)"; then
             rm -f "${STATE_DIR}"/*.done 2>/dev/null || true
-            log_ok "Checkpoint'ler temizlendi."
+            log_ok "$(t run_reset_ok)"
         fi
         ;;
     clean|cleanup)
@@ -76,23 +76,23 @@ case "${cmd}" in
         ;;
     stage)
         target="${2:-}"
-        [[ -n "${target}" ]] || die "Aşama numarası/adı ver: ./run.sh stage 02"
+        [[ -n "${target}" ]] || die "$(t run_err_stage_arg)"
         match=""
         for s in "${STAGES[@]}"; do [[ "${s}" == ${target}* ]] && match="${s}" && break; done
         if [[ -z "${match}" && "${target}" == "06_truba" ]]; then
             match="06_truba_pack"
         fi
-        [[ -n "${match}" ]] || die "Eşleşen aşama yok: '${target}'"
+        [[ -n "${match}" ]] || die "$(t run_err_no_match "${target}")"
         run_stage "${match}"
         ;;
     all)
-        log_info "Pipeline başlıyor (kaldığı yerden devam). DRY_RUN=${DRY_RUN}"
+        log_info "$(t run_all_start "${DRY_RUN}")"
         for s in "${STAGES[@]}"; do
             run_stage "${s}"
         done
-        log_ok "Tüm tanımlı aşamalar tamamlandı."
+        log_ok "$(t run_all_done)"
         ;;
     *)
-        die "Bilinmeyen komut: '${cmd}'. (check|setup|list|reset|clean|stage|all)"
+        die "$(t run_err_unknown "${cmd}")"
         ;;
 esac

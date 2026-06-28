@@ -128,11 +128,11 @@ cleanup_workdir() {
 
     if [[ "${CLEAN_YES}" != "yes" ]]; then
         echo ""
-        if ! confirm "Yukarıdaki dosyalar silinsin mi? (girdiler korunur)"; then
+        if ! confirm "$(t clean_confirm1)"; then
             log_info "Temizlik iptal edildi."
             return 0
         fi
-        if ! confirm "Emin misiniz? Bu işlem geri alınamaz (yedekleriniz var mı?)"; then
+        if ! confirm "$(t clean_confirm2)"; then
             log_info "Temizlik iptal edildi."
             return 0
         fi

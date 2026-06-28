@@ -25,6 +25,10 @@ MDPREP_DIR="$(cd "${LIB_DIR}/.." && pwd)"
 # shellcheck source=/dev/null
 source "${MDPREP_DIR}/config.sh"
 
+# shellcheck source=/dev/null
+source "${MDPREP_DIR}/lib/i18n.sh"
+load_i18n
+
 # WORKDIR boşsa mdprep'in üstü (girdilerin olduğu dizin)
 if [[ -z "${WORKDIR}" ]]; then
     WORKDIR="$(cd "${MDPREP_DIR}/.." && pwd)"
@@ -59,17 +63,15 @@ die() { log_err "$*"; exit 1; }
 
 # --- Varlık kontrolleri -----------------------------------------------------
 require_cmd() {
-    # require_cmd <komut> [açıklama]
-    command -v "$1" >/dev/null 2>&1 || die "Gerekli komut bulunamadı: '$1' ${2:+($2)}"
+    command -v "$1" >/dev/null 2>&1 || die "$(t err_cmd_missing "$1" "${2:-}")"
 }
 
 require_file() {
-    # require_file <yol> [açıklama]
-    [[ -f "$1" ]] || die "Gerekli dosya yok: '$1' ${2:+($2)}"
+    [[ -f "$1" ]] || die "$(t err_file_missing "$1" "${2:-}")"
 }
 
 require_dir() {
-    [[ -d "$1" ]] || die "Gerekli klasör yok: '$1' ${2:+($2)}"
+    [[ -d "$1" ]] || die "$(t err_dir_missing "$1" "${2:-}")"
 }
 
 # --- Yedekleme --------------------------------------------------------------
@@ -80,7 +82,7 @@ backup_file() {
     local ts; ts="$(date +%Y%m%d_%H%M%S)"
     local dest="${BACKUP_DIR}/$(basename "$f").${ts}.bak"
     cp -p "$f" "$dest"
-    log_info "Yedek alındı: $(basename "$f") -> ${dest#"${WORKDIR}/"}"
+    log_info "$(t backup_done "$(basename "$f")" "${dest#"${WORKDIR}/"}")"
 }
 
 # --- Güvenli komut çalıştırma ----------------------------------------------
@@ -88,14 +90,14 @@ run_cmd() {
     # Genel komut. DRY_RUN destekler, stdout+stderr'i loga yazar.
     log_info "CMD: $*"
     if [[ "${DRY_RUN}" == "yes" ]]; then
-        log_warn "DRY_RUN: çalıştırılmadı."
+        log_warn "$(t dry_run_skip)"
         return 0
     fi
     if "$@" >>"${RUN_LOG}" 2>&1; then
         return 0
     else
         local rc=$?
-        log_err "Komut başarısız (rc=${rc}): $*  (ayrıntı: ${RUN_LOG})"
+        log_err "$(t cmd_failed "${rc}" "$*" "${RUN_LOG}")"
         return "${rc}"
     fi
 }
@@ -125,7 +127,7 @@ run_gmx() {
     cat "${gmx_log}" >>"${RUN_LOG}"
 
     if [[ ${rc} -ne 0 ]] || grep -qiE 'Fatal error:' "${gmx_log}"; then
-        log_err "gmx ${desc} başarısız (rc=${rc}). Log: ${gmx_log}"
+        log_err "$(t gmx_failed "${desc}" "${rc}" "${gmx_log}")"
         # GROMACS hata satırını öne çıkar
         grep -iE 'fatal error|error|not found' "${gmx_log}" | head -n 8 || true
         return 1
@@ -135,7 +137,7 @@ run_gmx() {
     local missing=0
     for out in "${expect[@]}"; do
         if [[ ! -s "${out}" ]]; then
-            log_err "gmx ${desc}: beklenen çıktı oluşmadı veya boş: ${out}"
+            log_err "$(t gmx_missing_out "${desc}" "${out}")"
             missing=1
         fi
     done
@@ -143,9 +145,9 @@ run_gmx() {
 
     # Sessiz uyarıları rapor et
     if grep -qiE 'warning' "${gmx_log}"; then
-        log_warn "gmx ${desc} uyarı(lar) üretti (loga bak: ${gmx_log})"
+        log_warn "$(t gmx_warn "${desc}" "${gmx_log}")"
     fi
-    log_ok "gmx ${desc} tamamlandı."
+    log_ok "$(t gmx_done "${desc}")"
     return 0
 }
 
@@ -174,7 +176,7 @@ run_gmx_stdin() {
     cat "${gmx_log}" >>"${RUN_LOG}"
 
     if [[ ${rc} -ne 0 ]] || grep -qiE 'Fatal error:' "${gmx_log}"; then
-        log_err "gmx ${desc} başarısız (rc=${rc}). Log: ${gmx_log}"
+        log_err "$(t gmx_failed "${desc}" "${rc}" "${gmx_log}")"
         grep -iE 'fatal error|error|not found' "${gmx_log}" | head -n 8 || true
         return 1
     fi
@@ -182,13 +184,13 @@ run_gmx_stdin() {
     local missing=0
     for out in "${expect[@]}"; do
         if [[ ! -s "${out}" ]]; then
-            log_err "gmx ${desc}: beklenen çıktı oluşmadı: ${out}"
+            log_err "$(t gmx_missing_out "${desc}" "${out}")"
             missing=1
         fi
     done
     [[ "${missing}" -eq 0 ]] || return 1
 
-    log_ok "gmx ${desc} tamamlandı."
+    log_ok "$(t gmx_done "${desc}")"
     return 0
 }
 
@@ -284,7 +286,7 @@ python_deps_ok() {
 }
 
 # --- Checkpoint / resume ----------------------------------------------------
-mark_done() { : >"${STATE_DIR}/$1.done"; log_ok "Checkpoint: $1"; }
+mark_done() { : >"${STATE_DIR}/$1.done"; log_ok "$(t checkpoint_done "$1")"; }
 is_done()   { [[ -f "${STATE_DIR}/$1.done" ]]; }
 clear_done() { rm -f "${STATE_DIR}/$1.done"; }
 
@@ -292,7 +294,7 @@ clear_done() { rm -f "${STATE_DIR}/$1.done"; }
 stage_guard() {
     local name="$1"
     if is_done "${name}" && [[ "${FORCE:-0}" != "1" ]]; then
-        log_info "[${name}] zaten tamamlanmış, atlanıyor (yeniden için: FORCE=1)."
+        log_info "$(t stage_skip "${name}")"
         return 1
     fi
     return 0
@@ -301,15 +303,15 @@ stage_guard() {
 # --- Kullanıcı kapısı (manuel adımlar) -------------------------------------
 pause_gate() {
     # pause_gate "mesaj"  -> kullanıcıdan ENTER bekler (DRY_RUN'da geçer)
-    [[ "${DRY_RUN}" == "yes" ]] && { log_warn "DRY_RUN: kapı atlandı."; return 0; }
-    printf '\n%s>>> MANUEL ADIM:%s %s\n' "${C_YLW}" "${C_RST}" "$1"
-    read -r -p "Hazır olunca ENTER'a bas (iptal için Ctrl-C)... " _
+    [[ "${DRY_RUN}" == "yes" ]] && { log_warn "$(t dry_run_gate)"; return 0; }
+    printf '\n%s%s%s %s\n' "${C_YLW}" "$(t manual_step)" "${C_RST}" "$1"
+    read -r -p "$(t pause_manual)" _
 }
 
 confirm() {
     # confirm "soru"  -> y/N
     local ans
-    read -r -p "$1 [y/N] " ans
+    read -r -p "$1 $(t confirm_yn)" ans
     [[ "${ans}" =~ ^[Yy]$ ]]
 }
 
@@ -321,7 +323,7 @@ prep_confirm_gate() {
     [[ "${PREP_INTERACTIVE:-yes}" == "yes" ]] || return 0
     [[ "${DRY_RUN}" == "yes" ]] && return 0
     if [[ ! -t 0 ]]; then
-        log_info "PREP_INTERACTIVE: etkileşimli terminal yok, onay atlandı (${title})"
+        log_info "$(t confirm_gate_no_tty "${title}")"
         return 0
     fi
 
@@ -333,24 +335,25 @@ prep_confirm_gate() {
     done
     printf '╚══════════════════════════════════════════╝\n'
     while true; do
-        read -r -p "Devam? [Y/n/e=config düzenle/q=iptal] " ans
+        read -r -p "$(t confirm_gate)" ans
         case "${ans,,}" in
             ""|y|yes|evet) return 0 ;;
-            n|no|q|iptal) die "Hazırlık adımı iptal edildi." ;;
+            n|no|q|iptal) die "$(t confirm_gate_cancel)" ;;
             e|edit|d|duzenle)
                 local _wd="${WORKDIR}"
                 "${EDITOR:-nano}" "${MDPREP_DIR}/config.sh"
                 # shellcheck source=/dev/null
                 source "${MDPREP_DIR}/config.sh"
+                load_i18n
                 [[ -z "${WORKDIR}" ]] && WORKDIR="${_wd}"
-                log_ok "config.sh yeniden yüklendi — parametreleri kontrol edin."
+                log_ok "$(t confirm_gate_reload)"
                 ;;
             *)
-                log_warn "Geçersiz: Y (devam), n/q (iptal), e (config düzenle)"
+                log_warn "$(t confirm_gate_invalid)"
                 ;;
         esac
     done
 }
 
 # --- WORKDIR'e geç ----------------------------------------------------------
-cd "${WORKDIR}" || die "WORKDIR'e geçilemedi: ${WORKDIR}"
+cd "${WORKDIR}" || die "$(t err_workdir "${WORKDIR}")"

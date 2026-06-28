@@ -43,6 +43,7 @@ _export_queue_env() {
     export MDQUEUE_STATE_DIR="${STATE_DIR}"
     export MDQUEUE_LOG_DIR="${QUEUE_LOG_DIR}"
     export MDQUEUE_JOBS_FILE="${JOBS_JSON}"
+    export MDLANG="${MDLANG:-en}"
     export MDQUEUE_GMX="${GMX}"
     export MDQUEUE_MDRUN_EXTRA="${GMX_MDRUN_EXTRA}"
     export MDQUEUE_MAXWARN="${GROMPP_MAXWARN}"

@@ -49,7 +49,7 @@ if [[ "${DRY_RUN}" == "yes" ]]; then
     exit 0
 fi
 
-prep_confirm_gate "Index ve posre — T-coupling grupları" \
+prep_confirm_gate "$(t gate_index)" \
     "Yapı dosyası  : ${STRUCT_GRO}" \
     "genrestr grup : ${lig_grp}  (ligand heavy atoms — GROMACS'un sorduğu grup)" \
     "Tc-grps 1     : ${GRP_PROTEIN_LIG}  (protein + Zn + ligand)" \

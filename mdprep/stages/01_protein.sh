@@ -47,13 +47,13 @@ pdb2gmx_args=(
 [[ "${PDB2GMX_INTER}" == "no" ]] && pdb2gmx_args+=(-inter no)
 [[ "${PDB2GMX_TER}" == "no" ]] && pdb2gmx_args+=(-ter no)
 
-prep_confirm_gate "pdb2gmx — force field ve su" \
-    "Girdi PDB     : ${PDB_IN}" \
-    "Force field   : ${FF_NAME}  (-ff)" \
-    "Su modeli     : ${WATER_MODEL}  (-water)" \
-    "Bayraklar     : ignh=${PDB2GMX_IGNH} missing=${PDB2GMX_MISSING} inter=${PDB2GMX_INTER} ter=${PDB2GMX_TER}" \
-    "Çıktı         : ${PROTEIN_GRO}, ${PROTEIN_TOP}" \
-    "(GROMACS interaktif sormaz; değerler config.sh'den — e ile düzenleyebilirsiniz)"
+prep_confirm_gate "$(t gate_pdb2gmx)" \
+    "$(t gate_in_pdb "${PDB_IN}")" \
+    "$(t gate_ff "${FF_NAME}")" \
+    "$(t gate_water "${WATER_MODEL}")" \
+    "$(t gate_flags "${PDB2GMX_IGNH}" "${PDB2GMX_MISSING}" "${PDB2GMX_INTER}" "${PDB2GMX_TER}")" \
+    "$(t gate_out "${PROTEIN_GRO}" "${PROTEIN_TOP}")" \
+    "$(t gate_config_hint)"
 
 run_gmx "pdb2gmx protein" -- "${pdb2gmx_args[@]}" \
     ::expect:: "${PROTEIN_GRO}" "${PROTEIN_TOP}" \

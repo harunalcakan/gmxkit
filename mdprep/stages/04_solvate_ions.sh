@@ -29,7 +29,7 @@ for f in "${NEWBOX_GRO}" "${SOLV_GRO}" "${SOLV_IONS_GRO}" "${EM_TPR}" "${EM_GRO}
     [[ -f "${f}" ]] && backup_file "${f}"
 done
 
-prep_confirm_gate "Kutu ve solvasyon" \
+prep_confirm_gate "$(t gate_box)" \
     "Kutu tipi     : ${BOX_TYPE}  (editconf -bt)" \
     "Kenar mesafe  : ${BOX_DIST} nm  (editconf -d)" \
     "Su koordinat  : ${WATER_GRO}  (solvate -cs, ${WATER_MODEL} ile uyumlu)" \
@@ -65,7 +65,7 @@ sol_grp="$("${PY}" "${NDX_PY}" sol-group --gmx "${GMX}" "${SOLV_GRO}")" \
     || die "SOL grup numarası alınamadı"
 log_info "genion: SOL grubu = ${sol_grp}"
 
-prep_confirm_gate "genion — iyon ekleme" \
+prep_confirm_gate "$(t gate_genion)" \
     "Değiştirilecek grup : ${sol_grp} (${SOLVENT_GROUP})  ← GROMACS'un sorduğu grup" \
     "Katyon / anyon       : ${ION_PNAME} / ${ION_NNAME}" \
     "Nötrleştir           : ${ION_NEUTRAL}" \
@@ -81,7 +81,7 @@ run_gmx_stdin "genion" "${sol_grp}\n" -- "${genion_args[@]}" \
     ::expect:: "${SOLV_IONS_GRO}" \
     || die "genion başarısız"
 
-prep_confirm_gate "EM — grompp (mdrun kuyrukta)" \
+prep_confirm_gate "$(t gate_em)" \
     "MDP           : ${EM_MDP}" \
     "Girdi gro     : ${SOLV_IONS_GRO}" \
     "Çıktı tpr     : ${EM_TPR}" \
