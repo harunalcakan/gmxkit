@@ -1,6 +1,10 @@
 # GmxKit — Dağıtım ve kurulum rehberi
 
-## `./md install` ne kurar?
+**English (detailed):** [docs/en/INSTALL.md](docs/en/INSTALL.md) · [FIRST_RUN_CHECKLIST.md](docs/en/FIRST_RUN_CHECKLIST.md)
+
+**Release zip:** [GitHub Releases](https://github.com/harunalcakan/gmxkit/releases)
+
+---
 
 | Kurulur (script) | Kurulmaz (siz) |
 |------------------|----------------|

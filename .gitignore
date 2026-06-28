@@ -51,6 +51,7 @@ charmm36-*.ff/
 
 # OS / editor
 desktop.ini
+dist/
 .DS_Store
 Thumbs.db
 topol.top

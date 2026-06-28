@@ -19,7 +19,17 @@ Language is saved in `mdprep/config.sh` (`MDLANG=en|tr`).
 | Force field (`charmm36-*.ff`) | `./md` launcher |
 | `protein.pdb`, `ligand.mol2`, `*.mdp` | — |
 
-Details: [mdprep/KURULUM_YENI_PC.md](mdprep/KURULUM_YENI_PC.md)
+Details: [Installation guide](mdprep/docs/en/INSTALL.md) · [First-run checklist](mdprep/docs/en/FIRST_RUN_CHECKLIST.md)
+
+## Download (end users)
+
+**[GitHub Releases](https://github.com/harunalcakan/gmxkit/releases)** — download `gmxkit-*.zip`, add force field + GROMACS, then `./md install`.
+
+Or clone:
+
+```bash
+git clone https://github.com/harunalcakan/gmxkit.git
+```
 
 ## Quick start
 
@@ -66,7 +76,17 @@ Excludes `.venv`, logs, and simulation outputs.
 
 ## Documentation
 
-- [docs/en/USAGE.md](mdprep/docs/en/USAGE.md) — English guide
+- [docs/en/INSTALL.md](mdprep/docs/en/INSTALL.md) — **step-by-step install (new PC)**
+- [docs/en/FIRST_RUN_CHECKLIST.md](mdprep/docs/en/FIRST_RUN_CHECKLIST.md) — printable checklist
+- [docs/en/USAGE.md](mdprep/docs/en/USAGE.md) — menu & workflow
 - [docs/tr/KULLANIM.md](mdprep/docs/tr/KULLANIM.md) — Turkish guide
+- [KURULUM_YENI_PC.md](mdprep/KURULUM_YENI_PC.md) — Turkish install notes
 - [PROJECT.md](mdprep/PROJECT.md) — architecture
 - [ANALYSIS.md](mdprep/ANALYSIS.md) — analysis workflow
+
+## Maintainers — build release zip
+
+```bash
+bash mdprep/make_release.sh 1.0.0
+# → dist/gmxkit-1.0.0.zip
+```
