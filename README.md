@@ -1,116 +1,87 @@
 # GmxKit
 
-GROMACS protein–ligand MD toolkit: preparation, simulation queue, and analysis. Menu-driven via **`gmxkit`** on WSL/Linux.
+GROMACS protein–ligand MD prep, simulation queue, and analysis.  
+Runs on **WSL / Linux**. You only install **GROMACS** yourself — force field and GmxKit scripts are included.
 
-**Default UI language: English.** Switch in the menu (Settings → 8) or:
+---
 
-```bash
-gmxkit lang tr
-gmxkit lang en
-```
-
-## Requirements
-
-| You provide | GmxKit provides |
-|-------------|-----------------|
-| **GROMACS** (`gmx` on PATH) | Python venv, prep pipeline, queue, analysis |
-| `protein.pdb`, `ligand.mol2` per project | **CHARMM36 + CGenFF** (bundled), MDP templates, logs |
-
-GmxKit does **not** install GROMACS. You must have `gmx` available before running simulations.
-
-Details: [Installation guide](mdprep/docs/en/INSTALL.md) · [First-run checklist](mdprep/docs/en/FIRST_RUN_CHECKLIST.md)
-
-## Install once
+## Install (once)
 
 ```bash
 git clone https://github.com/harunalcakan/gmxkit.git ~/opt/gmxkit
 cd ~/opt/gmxkit
 chmod +x gmxkit md
-# charmm36-*.ff/ is included in the repo
 ./gmxkit install
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc
+gmx --version    # must work before prep
+gmxkit check
 ```
 
-This installs Python dependencies and registers the **`gmxkit`** command in `~/.local/bin`.  
-Ensure `~/.local/bin` is on your PATH (add to `~/.bashrc` if needed).
+---
 
-**Uninstall** (venv + global command only; keeps GROMACS, force field, projects):
+## Run a project
 
-```bash
-gmxkit uninstall
-gmxkit uninstall --purge-home   # also delete ~/opt/gmxkit (full clone)
-```
-
-**Fresh project** (reset a project folder; keeps your 4 input files):
+Put **`protein.pdb`** and **`ligand.mol2`** in a folder, then:
 
 ```bash
-cd /path/to/project
-gmxkit fresh -y
-# keeps: protein.pdb, ligand.mol2, ligand_fix.mol2, ligand_fix.str, gmxkit.env
-```
-
-## Use from any project folder
-
-```bash
-mkdir ~/projects/ca1
-cp protein.pdb ligand.mol2 ~/projects/ca1/
-cd ~/projects/ca1
+cd /path/to/my-project
 gmxkit
 ```
 
-GmxKit detects `protein.pdb` / `ligand.mol2`, copies MDP templates, links the force field from the install folder, and writes logs to `.gmxkit/` in that folder. GROMACS outputs (`topol.top`, `*.gro`, `*.tpr`, …) appear in the project folder as you run prep.
+GmxKit copies MDP templates, links the force field, and writes logs to `.gmxkit/` in that folder.  
+GROMACS files (`topol.top`, `*.gro`, …) appear in the project folder as you run prep.
 
-**Windows:** open your folder in Explorer, then in WSL:
+**Windows folder (WSL):**
 
 ```bash
-cd /mnt/c/Users/you/projects/ca1
+cd "/mnt/c/Users/you/projects/ca1"
 gmxkit
 ```
 
-## Menu (numbers only)
+---
 
-| # | After prep | Before prep |
-|---|------------|---------------|
-| **1** | Preparation (re-run steps) | Preparation (run all steps) |
-| **2** | Simulation (EM → MD queue) | Settings |
-| **3** | Analysis | — |
-| **4** | Settings | — |
-| **0** | Exit | Exit |
+## Menu
 
-## CLI (optional)
+| Key | Meaning |
+|-----|---------|
+| **1** | Preparation (topology → solvation → index) |
+| **2** | Simulation (EM → NVT → NPT → MD queue) — after prep |
+| **3** | Analysis |
+| **4** | Settings |
+| **0** | Exit |
 
-```bash
-gmxkit prep              # all prep steps
-gmxkit prep protein      # one step (short name)
-gmxkit stage ligand      # same
-gmxkit protein           # shortcut for single step
-gmxkit queue chain       # EM → NVT → NPT → MD
-gmxkit analyze           # trajectory analysis
-```
+Inside **Preparation**: `1` = run all steps · `2`–`9` = one step · or type a code: `check`, `protein`, `ligand`, …
 
-**Prep step codes:** `check` · `metal`* · `protein` · `ligand` · `complex` · `solvate` · `index` · `scripts`  
-\* `metal` only when metalloenzyme mode is on (first-run prompt or Settings → 10).  
-Menu: **1** = automatic all steps · **2–9** = one step · or type the code (`gmxkit protein`).
-
-## Project layout
-
-```
-~/opt/gmxkit/              ← install once (scripts + force field)
-~/projects/ca1/            ← each system
-├── protein.pdb
-├── ligand.mol2
-├── topol.top, *.gro, …    ← GROMACS files (created during prep/sim)
-└── .gmxkit/               ← logs, checkpoints, queue (not mixed between projects)
-```
-
-## Documentation
-
-- [docs/en/INSTALL.md](mdprep/docs/en/INSTALL.md)
-- [docs/en/FIRST_RUN_CHECKLIST.md](mdprep/docs/en/FIRST_RUN_CHECKLIST.md)
-- [docs/en/USAGE.md](mdprep/docs/en/USAGE.md)
-- [docs/tr/KULLANIM.md](mdprep/docs/tr/KULLANIM.md)
-
-## Maintainers — release zip
+**Metalloenzyme (e.g. CA + Zn):** first run asks, or set in `gmxkit.env`:
 
 ```bash
-bash mdprep/make_release.sh 1.0.0
+METAL_ENZYME="yes"
+METAL_HSD_RESIDUES="94 96 119"
+LIG_RESNAME="2Q38"
 ```
+
+**CGenFF:** ligand step pauses — upload `ligand_sorted.mol2` to the CGenFF site, save `.str` in the project folder, continue.
+
+---
+
+## Useful commands
+
+```bash
+gmxkit check              # environment check
+gmxkit prep               # all prep steps
+gmxkit protein            # one prep step
+gmxkit queue chain        # EM → NVT → NPT → MD
+gmxkit fresh -y           # reset project (keep inputs only)
+gmxkit uninstall          # remove GmxKit venv + global command
+gmxkit lang tr            # Turkish UI
+```
+
+---
+
+## More help
+
+- [Install guide](mdprep/docs/en/INSTALL.md)
+- [First-run checklist](mdprep/docs/en/FIRST_RUN_CHECKLIST.md)
+- [Turkish guide](mdprep/docs/tr/KULLANIM.md)
+
+**Repo:** [github.com/harunalcakan/gmxkit](https://github.com/harunalcakan/gmxkit)
