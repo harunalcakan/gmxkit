@@ -72,8 +72,9 @@ gmxkit queue chain       # EM → NVT → NPT → MD
 gmxkit analyze           # trajectory analysis
 ```
 
-**Prep step codes:** `check` · `metal` · `protein` · `ligand` · `complex` · `solvate` · `index` · `scripts`  
-Menu numbers **1–8** also work. Legacy `00`–`06` still accepted.
+**Prep step codes:** `check` · `metal`* · `protein` · `ligand` · `complex` · `solvate` · `index` · `scripts`  
+\* `metal` only when metalloenzyme mode is on (first-run prompt or Settings → 10).  
+Menu: **1** = automatic all steps · **2–9** = one step · or type the code (`gmxkit protein`).
 
 ## Project layout
 

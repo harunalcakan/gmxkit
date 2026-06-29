@@ -79,7 +79,7 @@ PDB2GMX_TER="no"
 # -----------------------------------------------------------------------------
 # 3c) METALLOenzim (Karbonik Anhidraz / Zn2+) — kılavuz Adım 1–3
 # -----------------------------------------------------------------------------
-METAL_ENZYME="yes"                    # no → 00b atlanır, genel protein-ligand
+METAL_ENZYME="no"                     # yes → metalloenzyme prep (step: metal); set in gmxkit.env
 METAL_CHAIN="A"
 METAL_ION_RESNAME="ZN"
 # Zn koordinasyon Histidinleri → HSD (CA tipik: 94, 96, 119)

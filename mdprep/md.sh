@@ -41,6 +41,8 @@ fi
 source "${MDPREP_DIR}/lib/common.sh"
 # shellcheck source=lib/stages.sh
 source "${MDPREP_DIR}/lib/stages.sh"
+# shellcheck source=lib/project_profile.sh
+source "${MDPREP_DIR}/lib/project_profile.sh"
 
 RUN_SCRIPT="${WORKDIR}/run_local_md.sh"
 BIND_SCRIPT="${WORKDIR}/check_binding.sh"
@@ -124,11 +126,17 @@ _pause() {
 
 _stage_done_mark() {
     local idx="$1"
-    if is_done "${STAGE_NAMES[$idx]}"; then
+    if _stage_effective_done "${idx}"; then
         printf '%b✓%b' "${C_GRN}" "${C_RST}"
     else
         printf '%b·%b' "${C_DIM}" "${C_RST}"
     fi
+}
+
+_stage_effective_done() {
+    local idx="$1"
+    [[ "${STAGE_SHORTS[$idx]}" == "metal" ]] && ! metal_enzyme_enabled && return 0
+    is_done "${STAGE_NAMES[$idx]}"
 }
 
 _print_status_board() {
@@ -136,10 +144,11 @@ _print_status_board() {
     printf '\n%-4s %-36s %s\n' "$(t hdr_id)" "$(t hdr_stage)" "$(t hdr_status)"
     printf '%-4s %-36s %s\n' "----" "------------------------------------" "------"
     for i in "${!STAGE_NAMES[@]}"; do
-        local st
+        local st skip=""
         st="$(t status_waiting)"
-        is_done "${STAGE_NAMES[$i]}" && st="${C_GRN}$(t status_done)${C_RST}"
-        printf '%-8s %-36s %b\n' "${STAGE_SHORTS[$i]}" "${STAGE_LABELS[$i]}" "${st}"
+        _stage_effective_done "${i}" && st="${C_GRN}$(t status_done)${C_RST}"
+        skip="$(_stage_skip_label "${i}")"
+        printf '%-8s %-36s %b %b\n' "${STAGE_SHORTS[$i]}" "${STAGE_LABELS[$i]}" "${st}" "${skip}"
     done
     echo ""
 }
@@ -147,7 +156,7 @@ _print_status_board() {
 _prep_done_count() {
     local i n=0
     for i in "${!STAGE_NAMES[@]}"; do
-        is_done "${STAGE_NAMES[$i]}" && n=$((n + 1))
+        _stage_effective_done "${i}" && n=$((n + 1))
     done
     echo "${n}"
 }
@@ -159,7 +168,7 @@ _prep_complete() {
 _next_prep_stage() {
     local i
     for i in "${!STAGE_NAMES[@]}"; do
-        if ! is_done "${STAGE_NAMES[$i]}"; then
+        if ! _stage_effective_done "${i}"; then
             echo "${STAGE_SHORTS[$i]}|${STAGE_LABELS[$i]}"
             return 0
         fi
@@ -319,15 +328,57 @@ _suggest_next() {
     echo "$(t suggest_sim)"
 }
 
+_prep_step_menu_num() {
+    echo "$(( $1 + 2 ))"
+}
+
+_stage_skip_label() {
+    local i="$1"
+    [[ "${STAGE_SHORTS[$i]}" == "metal" ]] && ! metal_enzyme_enabled && {
+        printf '%b%s%b' "${C_DIM}" "$(t stage_metal_off)" "${C_RST}"
+        return 0
+    }
+    echo ""
+}
+
+_print_prep_legend() {
+    printf '  %-4s %-8s %-32s %s\n' "$(t hdr_num)" "$(t hdr_code)" "$(t hdr_stage)" "$(t hdr_status)"
+    printf '  %-4s %-8s %-32s %s\n' "----" "--------" "--------------------------------" "------"
+}
+
+_print_prep_system_line() {
+    if metal_enzyme_enabled; then
+        echo "  $(t prep_system_metal "${METAL_HSD_RESIDUES:-}" "${METAL_CHAIN:-A}")"
+    else
+        echo "  $(t prep_system_std)"
+    fi
+}
+
 _run_stage() {
     local token="$1" force="${2:-0}"
-    local name
-    name="$(resolve_stage_name "${token}")" || { log_warn "$(t invalid_stage "${token}")"; return 1; }
+    resolve_stage_name "${token}" >/dev/null || { log_warn "$(t invalid_stage "${token}")"; return 1; }
     if [[ "${force}" == "1" ]]; then
         FORCE=1 bash "${RUN_SH}" stage "${token}"
     else
         bash "${RUN_SH}" stage "${token}"
     fi
+}
+
+_run_prep_step() {
+    local token="$1" force="${2:-0}"
+    local name short hint=""
+    if name="$(resolve_stage_name "${token}")"; then
+        short="$(stage_short_for "${name}")"
+        hint="$(stage_manual_hint "${short}")"
+    else
+        hint="$(stage_manual_hint "${token}")"
+    fi
+    if [[ -n "${hint}" ]]; then
+        echo ""
+        echo "  ${C_YLW}$(t prep_manual_note)${C_RST} ${hint}"
+        echo ""
+    fi
+    _run_stage "${token}" "${force}"
 }
 
 cmd_binding() {
@@ -357,49 +408,41 @@ _menu_prep() {
         echo "║$(t menu_prep_title)║"
         echo "╚══════════════════════════════════════════╝"
         echo ""
-        echo "$(t menu_prep_all)"
-        local i n
+        _print_prep_system_line
+        echo ""
+        echo "$(t menu_prep_auto)"
+        echo "$(t menu_prep_manual_hdr)"
+        echo ""
+        _print_prep_legend
+        local i n skip
         for i in "${!STAGE_NAMES[@]}"; do
-            n=$((i + 2))
-            printf '  %d  %-8s %s  %s\n' "${n}" "${STAGE_SHORTS[$i]}" "$(_stage_done_mark "${i}")" "${STAGE_LABELS[$i]}"
+            n="$(_prep_step_menu_num "${i}")"
+            skip="$(_stage_skip_label "${i}")"
+            printf '  %-4d %-8s %s  %-28s %b\n' \
+                "${n}" "${STAGE_SHORTS[$i]}" "$(_stage_done_mark "${i}")" \
+                "${STAGE_LABELS[$i]}" "${skip}"
         done
         echo ""
         echo "$(t menu_prep_force)"
+        echo "$(t menu_prep_input_hint)"
         echo "$(t menu_prep_back)"
         echo ""
         read -r -p "$(t prompt_stage)" choice
         [[ -z "${choice}" ]] && continue
         case "${choice}" in
             0) return 0 ;;
-            1)
+            1|a|A|auto)
+                echo "  $(t menu_prep_auto_note)"
                 bash "${RUN_SH}" all
                 _pause
                 ;;
             f|F)
                 read -r -p "$(t prompt_force_stage)" fid
-                if [[ -n "${fid}" && "${fid}" =~ ^[0-9]+$ ]]; then
-                    local idx=$((fid - 2))
-                    if [[ "${idx}" -ge 0 && "${idx}" -lt "${#STAGE_NAMES[@]}" ]]; then
-                        _run_stage "${STAGE_SHORTS[$idx]}" 1
-                        _pause
-                    else
-                        log_warn "$(t invalid_choice)"
-                    fi
-                fi
+                [[ -n "${fid}" ]] && { _run_prep_step "${fid}" 1; _pause; }
                 ;;
             *)
-                if [[ "${choice}" =~ ^[0-9]+$ ]]; then
-                    local idx=$((choice - 2))
-                    if [[ "${idx}" -ge 0 && "${idx}" -lt "${#STAGE_NAMES[@]}" ]]; then
-                        _run_stage "${STAGE_SHORTS[$idx]}" 0
-                        _pause
-                    else
-                        log_warn "$(t invalid_choice)"
-                    fi
-                else
-                    _run_stage "${choice}" 0
-                    _pause
-                fi
+                _run_prep_step "${choice}" 0
+                _pause
                 ;;
         esac
     done
@@ -492,6 +535,7 @@ _menu_tools() {
         echo "$(t tool_setup)"
         echo "$(t tool_lang)"
         echo "$(t tool_install)"
+        echo "$(t tool_system)"
         echo "$(t menu_prep_back)"
         read -r -p "$(t prompt_choice)" c
         case "${c}" in
@@ -524,6 +568,7 @@ _menu_tools() {
                 _pause
                 ;;
             9) bash "${INSTALL_SH}"; _pause ;;
+            10) menu_system_type; _build_stage_labels; _pause ;;
             *) log_warn "$(t invalid_choice)" ;;
         esac
     done
@@ -552,6 +597,7 @@ orchestrator_menu() {
         echo "  ${C_YLW}$(t first_install)${C_RST}"
         echo ""
     fi
+    prompt_system_type_if_needed
     while true; do
         echo ""
         echo "╔══════════════════════════════════════════════════════════╗"
