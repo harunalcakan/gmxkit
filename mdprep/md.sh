@@ -52,6 +52,7 @@ QUEUE_SH="${MDPREP_DIR}/lib/job_queue.sh"
 ANALYZE_SH="${MDPREP_DIR}/lib/analyze_md.sh"
 AUDIT_SH="${MDPREP_DIR}/lib/audit_prep.sh"
 INSTALL_SH="${MDPREP_DIR}/lib/install.sh"
+UNINSTALL_SH="${MDPREP_DIR}/lib/uninstall.sh"
 
 # run.sh ile aynı sıra (stage 06 RUN_TARGET'a göre)
 _build_stage_labels() {
@@ -98,6 +99,7 @@ $(t usage_queue)
 $(t usage_analyze)
 $(t usage_audit)
 $(t usage_install)
+$(t usage_uninstall)
 $(t usage_lang)
 $(t usage_init)
 $(t usage_project)
@@ -652,6 +654,7 @@ main_cli() {
         analyze|analysis) bash "${ANALYZE_SH}" "$@" ;;
         audit) bash "${AUDIT_SH}" "$@" ;;
         install) bash "${INSTALL_SH}" "$@" ;;
+        uninstall) bash "${UNINSTALL_SH}" "$@" ;;
         init) bash "${MDPREP_DIR}/lib/init_project.sh" "${1:-.}" ;;
         lang) cmd_lang "$@" ;;
         nvt|npt|md|resume) cmd_md "${cmd}" "$@" ;;

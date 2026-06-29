@@ -34,6 +34,13 @@ chmod +x gmxkit md
 This installs Python dependencies and registers the **`gmxkit`** command in `~/.local/bin`.  
 Ensure `~/.local/bin` is on your PATH (add to `~/.bashrc` if needed).
 
+**Uninstall** (venv + global command only; keeps GROMACS, force field, projects):
+
+```bash
+gmxkit uninstall
+gmxkit uninstall --purge-home   # also delete ~/opt/gmxkit (full clone)
+```
+
 ## Use from any project folder
 
 ```bash

@@ -133,3 +133,16 @@ Edit **`mdprep/config.sh`** in the install folder, or create **`gmxkit.env`** in
 
 Logs: `<project>/.gmxkit/logs/`  
 Install report: `~/opt/gmxkit/.gmxkit/state/install_report.txt`
+
+---
+
+## Uninstall
+
+Remove GmxKit-installed components (not GROMACS, force field, or project data):
+
+```bash
+cd ~/opt/gmxkit
+gmxkit uninstall              # venv + ~/.local/bin/gmxkit + install state
+gmxkit uninstall -y           # no prompt
+gmxkit uninstall --purge-home # also delete entire ~/opt/gmxkit folder
+```
