@@ -1,178 +1,124 @@
-# GmxKit — Installation Guide (new computer)
+# GmxKit — Installation Guide
 
-Step-by-step setup on **WSL2 (Ubuntu)** or **Linux**. GmxKit does not run natively on Windows CMD/PowerShell.
-
----
-
-## What you need before starting
-
-| Item | Who installs | Notes |
-|------|----------------|-------|
-| WSL2 + Ubuntu (Windows users) | You | [Microsoft WSL guide](https://learn.microsoft.com/en-us/windows/wsl/install) |
-| **GROMACS** (`gmx`) | You | GmxKit never installs GROMACS |
-| **CHARMM36 + CGenFF** force field folder | You | Not included in GitHub / release zip |
-| Python 3, perl | `./md install` | Optional `--with-apt` on fresh Ubuntu |
-| Example inputs | Included | `protein.pdb`, `ligand.mol2`, `*.mdp` in the package |
+Step-by-step setup on **WSL2 (Ubuntu)** or **Linux**. GmxKit does not run natively in Windows CMD/PowerShell.
 
 ---
 
-## Option A — Download release zip (recommended for end users)
+## What you need
 
-1. Open [GitHub Releases](https://github.com/harunalcakan/gmxkit/releases) and download the latest `gmxkit-*.zip`.
-2. Unzip to a folder, e.g. `~/projects/gmxkit`.
-3. Continue from [Step 3 — Force field](#step-3--force-field) below.
+| Item | Notes |
+|------|--------|
+| WSL2 + Ubuntu (Windows users) | [Microsoft WSL guide](https://learn.microsoft.com/en-us/windows/wsl/install) |
+| **GROMACS** (`gmx` on PATH) | **Required.** Install yourself — GmxKit never installs GROMACS |
+| **CHARMM36 + CGenFF** force field | Not in GitHub; add once to the GmxKit install folder |
+| Python 3, perl | Installed by `gmxkit install` |
 
-## Option B — Git clone (developers)
+---
+
+## 1 — Get GmxKit
+
+**Release zip:** [GitHub Releases](https://github.com/harunalcakan/gmxkit/releases)
+
+**Or clone:**
 
 ```bash
-git clone https://github.com/harunalcakan/gmxkit.git
-cd gmxkit
-```
-
----
-
-## Step 1 — WSL / Linux shell
-
-Open **Ubuntu** (WSL) or a Linux terminal. All commands below run there.
-
-```bash
-cd /path/to/gmxkit    # folder containing ./md and mdprep/
-chmod +x md mdprep/*.sh mdprep/lib/*.sh mdprep/stages/*.sh
+git clone https://github.com/harunalcakan/gmxkit.git ~/opt/gmxkit
+cd ~/opt/gmxkit
+chmod +x gmxkit md mdprep/*.sh mdprep/lib/*.sh mdprep/stages/*.sh
 ```
 
 ---
 
-## Step 2 — Install GROMACS
+## 2 — Force field (once)
 
-GmxKit calls `gmx` from your environment. Pick one method:
+Download a **CHARMM36m + CGenFF** bundle (folder like `charmm36-feb2026_ljpme_cgenff-5.0.ff`).
 
-### Ubuntu / WSL (simple)
-
-```bash
-sudo apt update
-sudo apt install -y gromacs
-gmx --version
-```
-
-### HPC cluster
-
-```bash
-module load gromacs/2024    # name depends on your site
-gmx --version
-```
-
-### Custom build
-
-Set the full path in `mdprep/config.sh`:
-
-```bash
-GMX="/opt/gromacs/bin/gmx"
-```
-
----
-
-## Step 3 — Force field
-
-Download a **CHARMM36m + CGenFF** force field bundle (folder name like `charmm36-feb2026_ljpme_cgenff-5.0.ff`).
-
-Place the **entire `.ff` directory** in the project root (same level as `./md`):
+Place it in the **GmxKit install folder** (same level as `gmxkit`):
 
 ```
-gmxkit/
-├── md
+~/opt/gmxkit/
+├── gmxkit
 ├── mdprep/
-├── protein.pdb
-├── ligand.mol2
-├── *.mdp
-└── charmm36-feb2026_ljpme_cgenff-5.0.ff/   ← here
+└── charmm36-feb2026_ljpme_cgenff-5.0.ff/
 ```
 
-Update `mdprep/config.sh` if your folder name differs:
+If the folder name differs, edit `mdprep/config.sh` → `FF_NAME` / `FF_DIR`.
+
+---
+
+## 3 — Install GmxKit (once)
 
 ```bash
-FF_NAME="charmm36-feb2026_ljpme_cgenff-5.0"
-FF_DIR="${FF_NAME}.ff"
+cd ~/opt/gmxkit
+gmxkit install
+```
+
+This creates the Python venv and registers **`~/.local/bin/gmxkit`**.
+
+If `gmxkit` is not found, add to `~/.bashrc`:
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+Verify GROMACS separately:
+
+```bash
+gmx --version
 ```
 
 ---
 
-## Step 4 — GmxKit dependencies
+## 4 — Run a project
 
-From the project root:
-
-```bash
-./md install              # Python venv (numpy, networkx)
-./md install --with-apt   # optional: also apt python3 + perl (sudo)
-```
-
-This creates `mdprep/.venv` and marks install complete. **GROMACS is not installed here.**
-
----
-
-## Step 5 — First-run check
+Create a folder, add inputs, run GmxKit **from that folder**:
 
 ```bash
-./md install    # if not done
-./md check      # or: ./md prep → stage 00
-```
-
-Fix anything marked **FAIL** (missing gmx, FF folder, input files).
-
-Interactive menu:
-
-```bash
-./md lang en    # English UI (default)
-./md            # main menu
-```
-
-Use the printable checklist: [FIRST_RUN_CHECKLIST.md](FIRST_RUN_CHECKLIST.md).
-
----
-
-## Project mode (recommended)
-
-Install GmxKit **once** (e.g. `~/opt/gmxkit`). Put the force field there. Each system uses its **own folder**; logs/checkpoints live in `.gmxkit/` inside that folder (no mixing).
-
-```bash
-cd ~/opt/gmxkit && ./md install          # once; FF folder here
-
-./md init ~/projects/ca1                 # templates + .gmxkit/
+mkdir ~/projects/ca1
 cp protein.pdb ligand.mol2 ~/projects/ca1/
-
 cd ~/projects/ca1
-~/opt/gmxkit/md check
-~/opt/gmxkit/md
+gmxkit
 ```
 
-Optional: `gmxkit.env` in the project folder for ligand name / temperature.  
-Or: `~/opt/gmxkit/md -C ~/projects/ca1 prep`
+No `init` required if `protein.pdb` and `ligand.mol2` are present — templates and `.gmxkit/` are created automatically.
+
+Optional scaffold:
+
+```bash
+gmxkit init ~/projects/ca1
+```
+
+**Windows folder via WSL:**
+
+```bash
+cd /mnt/c/Users/you/Documents/ca1
+gmxkit
+```
 
 ---
 
-## Step 6 — Typical workflow
+## 5 — Typical workflow
 
-1. **Prep** — menu `[P]` or `./md prep` (stages 00–06)  
-2. **CGenFF** — stage 02 pauses for manual `.str` download from the CGenFF web server  
-3. **Queue** — `./md queue chain` (EM → NVT → NPT → MD in background)  
-4. **Analysis** — `./md analyze` after MD finishes  
+1. **1 — Preparation** — run all prep steps (topology → solvation → index)
+2. **CGenFF pause** — stage 02 stops for manual `.str` download from the CGenFF web server
+3. **2 — Simulation** → **1 — Full chain** — EM → NVT → NPT → MD in the background queue
+4. **3 — Analysis** — after MD finishes
 
-See [USAGE.md](USAGE.md) for menu details.
+See [FIRST_RUN_CHECKLIST.md](FIRST_RUN_CHECKLIST.md) and [USAGE.md](USAGE.md).
 
 ---
 
-## Customizing for your system
+## Customizing
 
-Edit **`mdprep/config.sh`** (single source of truth):
+Edit **`mdprep/config.sh`** in the install folder, or create **`gmxkit.env`** in the project folder:
 
 | Setting | Purpose |
 |---------|---------|
-| `LIG_RESNAME` | Ligand residue name in mol2/top (example: `2Q38`) |
-| `METAL_ENZYME` | `yes` for CA/Zn; `no` for generic protein–ligand |
+| `LIG_RESNAME` | Ligand residue name in mol2/top |
+| `METAL_ENZYME` | `yes` for metalloenzymes |
 | `PROD_NS` | Production MD length |
-| `GMX` | Path to gmx binary |
+| `GMX` | Path to gmx if not on PATH |
 | `MDLANG` | `en` or `tr` |
-
-Profile example: `mdprep/profiles/ca2_6i0l_2q38.env` — source or copy values into `config.sh`.
 
 ---
 
@@ -180,21 +126,10 @@ Profile example: `mdprep/profiles/ca2_6i0l_2q38.env` — source or copy values i
 
 | Problem | Fix |
 |---------|-----|
-| `./md: Permission denied` | `chmod +x md` |
+| `gmxkit: command not found` | `export PATH="$HOME/.local/bin:$PATH"` |
 | `gmx not found` | Install GROMACS; set `GMX=` in config.sh |
-| `FF klasörü yok` | Add `charmm36-*.ff/` to project root |
-| `$'\r': command not found` | Windows line endings — run `sed -i 's/\r$//' md mdprep/**/*.sh` |
-| CGenFF fails | Run `./md install`; check `python3` + networkx in venv |
-| Menu in wrong language | `./md lang en` or `./md lang tr` |
+| Force field missing | Add `charmm36-*.ff/` to `~/opt/gmxkit/` |
+| `$'\r': command not found` | Windows line endings — `sed -i 's/\r$//' gmxkit mdprep/**/*.sh` |
 
-Logs: `mdprep/logs/`  
-Install report: `mdprep/.state/install_report.txt`
-
----
-
-## Create a release zip (maintainers)
-
-```bash
-bash mdprep/make_release.sh 1.0.0
-# → dist/gmxkit-1.0.0.zip
-```
+Logs: `<project>/.gmxkit/logs/`  
+Install report: `~/opt/gmxkit/.gmxkit/state/install_report.txt`

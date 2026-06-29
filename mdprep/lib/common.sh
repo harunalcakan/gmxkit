@@ -70,6 +70,36 @@ _ensure_project_ff() {
     [[ -d "${GMXKIT_HOME}/${FF_DIR}" ]] || return 0
     ln -snf "${GMXKIT_HOME}/${FF_DIR}" "${WORKDIR}/${FF_DIR}"
 }
+
+# Auto-scaffold project folder when user drops protein.pdb + ligand.mol2 in a directory
+_scaffold_project_dir() {
+    local target="$1"
+    [[ "${target}" != "${GMXKIT_HOME}" ]] || return 0
+    [[ -f "${target}/${PROTEIN_PDB}" || -f "${target}/${LIGAND_MOL2}" ]] || return 0
+
+    mkdir -p "${target}/.gmxkit/logs" "${target}/.gmxkit/state" "${target}/.gmxkit/backups"
+
+    local f
+    for f in em.mdp nvt.mdp npt.mdp md.mdp ions.mdp; do
+        [[ ! -f "${target}/${f}" && -f "${GMXKIT_HOME}/${f}" ]] && \
+            cp -f "${GMXKIT_HOME}/${f}" "${target}/${f}"
+    done
+
+    for f in sort_mol2_bonds.pl cgenff_charmm2gmx_py3_nx2.py cgenff_charmm2gmx_py2.py; do
+        [[ ! -e "${target}/${f}" && -f "${GMXKIT_HOME}/${f}" ]] && \
+            ln -snf "${GMXKIT_HOME}/${f}" "${target}/${f}"
+    done
+
+    if [[ ! -e "${target}/${FF_DIR}" && -d "${GMXKIT_HOME}/${FF_DIR}" ]]; then
+        ln -snf "${GMXKIT_HOME}/${FF_DIR}" "${target}/${FF_DIR}"
+    fi
+
+    if [[ ! -f "${target}/gmxkit.env" && -f "${MDPREP_DIR}/profiles/gmxkit.env.example" ]]; then
+        cp -f "${MDPREP_DIR}/profiles/gmxkit.env.example" "${target}/gmxkit.env"
+    fi
+}
+
+_scaffold_project_dir "${WORKDIR}"
 _ensure_project_ff
 
 # Tüm gmx çıktılarının toplandığı ana log

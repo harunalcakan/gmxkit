@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# GmxKit — alias for ./gmxkit (same launcher)
+# GmxKit — global launcher (install once, run from any project folder)
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export GMXKIT_HOME="${ROOT}"
 exec bash "${ROOT}/mdprep/md.sh" "$@"

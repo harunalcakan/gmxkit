@@ -1,92 +1,100 @@
 # GmxKit
 
-GROMACS protein–ligand MD toolkit: prep, local job queue, simulation, and analysis. Menu-driven via `./md` on WSL/Linux.
+GROMACS protein–ligand MD toolkit: preparation, simulation queue, and analysis. Menu-driven via **`gmxkit`** on WSL/Linux.
 
-**Default UI language: English.** Switch anytime:
+**Default UI language: English.** Switch in the menu (Settings → 8) or:
 
 ```bash
-./md lang tr    # Turkish menus
-./md lang en    # English (default)
+gmxkit lang tr
+gmxkit lang en
 ```
-
-Language is saved in `mdprep/config.sh` (`MDLANG=en|tr`).
 
 ## Requirements
 
-| You install | `./md install` provides |
-|-------------|-------------------------|
-| **GROMACS** (`gmx`) | Python venv (numpy, networkx) |
-| Force field (`charmm36-*.ff`) | `./md` launcher |
-| `protein.pdb`, `ligand.mol2`, `*.mdp` | — |
+| You provide | GmxKit provides |
+|-------------|-----------------|
+| **GROMACS** (`gmx` on PATH) | Python venv (numpy, networkx) |
+| **CHARMM36 + CGenFF** force field folder | Prep pipeline, queue, analysis |
+| `protein.pdb`, `ligand.mol2` per project | MDP templates, checkpoints, logs |
+
+GmxKit does **not** install GROMACS. You must have `gmx` available before running simulations.
 
 Details: [Installation guide](mdprep/docs/en/INSTALL.md) · [First-run checklist](mdprep/docs/en/FIRST_RUN_CHECKLIST.md)
 
-## Download (end users)
-
-**[GitHub Releases](https://github.com/harunalcakan/gmxkit/releases)** — download `gmxkit-*.zip`, add force field + GROMACS, then `./md install`.
-
-Or clone:
+## Install once
 
 ```bash
-git clone https://github.com/harunalcakan/gmxkit.git
+git clone https://github.com/harunalcakan/gmxkit.git ~/opt/gmxkit
+cd ~/opt/gmxkit
+# add charmm36-*.ff/ here (once)
+./gmxkit install
 ```
 
-## Quick start
+This installs Python dependencies and registers the **`gmxkit`** command in `~/.local/bin`.  
+Ensure `~/.local/bin` is on your PATH (add to `~/.bashrc` if needed).
+
+## Use from any project folder
 
 ```bash
-# 1) Place force field in project root
-# 2) Ensure gmx is on PATH (config.sh → GMX="gmx")
-./md install
-./md
+mkdir ~/projects/ca1
+cp protein.pdb ligand.mol2 ~/projects/ca1/
+cd ~/projects/ca1
+gmxkit
 ```
 
-## Commands
+GmxKit detects `protein.pdb` / `ligand.mol2`, copies MDP templates, links the force field from the install folder, and writes logs to `.gmxkit/` in that folder. GROMACS outputs (`topol.top`, `*.gro`, `*.tpr`, …) appear in the project folder as you run prep.
 
-| Command | Description |
-|---------|-------------|
-| `./md` | Interactive menu |
-| `./md prep` | Prep stages 00–06 |
-| `./md queue chain` | Queue EM → NVT → NPT → MD |
-| `./md analyze` | PBC + RMSD/RMSF/Rg/SASA |
-| `./md audit` | Prep validation |
-| `./md install` | Python dependencies (no GROMACS) |
-| `./md lang en\|tr` | UI language |
+**Windows:** open your folder in Explorer, then in WSL:
+
+```bash
+cd /mnt/c/Users/you/projects/ca1
+gmxkit
+```
+
+## Menu (numbers only)
+
+| # | After prep | Before prep |
+|---|------------|---------------|
+| **1** | Preparation (re-run steps) | Preparation (run all steps) |
+| **2** | Simulation (EM → MD queue) | Settings |
+| **3** | Analysis | — |
+| **4** | Settings | — |
+| **0** | Exit | Exit |
+
+## CLI (optional)
+
+```bash
+gmxkit prep              # all prep steps
+gmxkit prep protein      # one step (short name)
+gmxkit stage ligand      # same
+gmxkit protein           # shortcut for single step
+gmxkit queue chain       # EM → NVT → NPT → MD
+gmxkit analyze           # trajectory analysis
+```
+
+**Prep step codes:** `check` · `metal` · `protein` · `ligand` · `complex` · `solvate` · `index` · `scripts`  
+Menu numbers **1–8** also work. Legacy `00`–`06` still accepted.
 
 ## Project layout
 
 ```
-./
-├── md                 # GmxKit launcher
-├── mdprep/            # pipeline scripts
-│   ├── i18n/          # en.sh, tr.sh UI strings
-│   └── docs/en|tr/    # user guides
+~/opt/gmxkit/              ← install once (scripts + force field)
+~/projects/ca1/            ← each system
 ├── protein.pdb
 ├── ligand.mol2
-├── *.mdp
-└── charmm36-....ff/   # not in git — add locally
+├── topol.top, *.gro, …    ← GROMACS files (created during prep/sim)
+└── .gmxkit/               ← logs, checkpoints, queue (not mixed between projects)
 ```
-
-## Portable package
-
-```bash
-bash mdprep/export_portable.sh /target/dir
-```
-
-Excludes `.venv`, logs, and simulation outputs.
 
 ## Documentation
 
-- [docs/en/INSTALL.md](mdprep/docs/en/INSTALL.md) — **step-by-step install (new PC)**
-- [docs/en/FIRST_RUN_CHECKLIST.md](mdprep/docs/en/FIRST_RUN_CHECKLIST.md) — printable checklist
-- [docs/en/USAGE.md](mdprep/docs/en/USAGE.md) — menu & workflow
-- [docs/tr/KULLANIM.md](mdprep/docs/tr/KULLANIM.md) — Turkish guide
-- [KURULUM_YENI_PC.md](mdprep/KURULUM_YENI_PC.md) — Turkish install notes
-- [PROJECT.md](mdprep/PROJECT.md) — architecture
-- [ANALYSIS.md](mdprep/ANALYSIS.md) — analysis workflow
+- [docs/en/INSTALL.md](mdprep/docs/en/INSTALL.md)
+- [docs/en/FIRST_RUN_CHECKLIST.md](mdprep/docs/en/FIRST_RUN_CHECKLIST.md)
+- [docs/en/USAGE.md](mdprep/docs/en/USAGE.md)
+- [docs/tr/KULLANIM.md](mdprep/docs/tr/KULLANIM.md)
 
-## Maintainers — build release zip
+## Maintainers — release zip
 
 ```bash
 bash mdprep/make_release.sh 1.0.0
-# → dist/gmxkit-1.0.0.zip
 ```

@@ -45,9 +45,8 @@ EOF
     echo ""
     echo "  $(t init_next_steps)"
     echo "    cd ${target}"
-    echo "    # add protein.pdb, ligand.mol2"
-    echo "    ${GMXKIT_HOME}/md check"
-    echo "    ${GMXKIT_HOME}/md"
+    echo "    # copy protein.pdb and ligand.mol2 here"
+    echo "    gmxkit"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

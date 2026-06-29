@@ -19,24 +19,10 @@ set -o errexit -o nounset -o pipefail
 MDPREP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 STAGES_DIR="${MDPREP_DIR}/stages"
 
-# Aşama listesi (sıralı). Stage 06 RUN_TARGET'a göre değişir.
-if [[ "${RUN_TARGET:-local}" == "truba" ]]; then
-    STAGE_06="06_truba_pack"
-else
-    STAGE_06="06_local_md"
-fi
-STAGES=(
-    "00_check_env"
-    "00b_prepare_metallo"
-    "01_protein"
-    "02_ligand"
-    "03_complex"
-    "04_solvate_ions"
-    "05_index_posre"
-    "${STAGE_06}"
-)
-
 source "${MDPREP_DIR}/lib/common.sh"
+# shellcheck source=stages.sh
+source "${MDPREP_DIR}/lib/stages.sh"
+stages_init
 
 run_stage() {
     local name="$1"
@@ -56,11 +42,12 @@ case "${cmd}" in
         bash "${MDPREP_DIR}/setup_env.sh" "$@"
         ;;
     list)
-        printf '\n%-20s %s\n' "$(t run_list_stage)" "$(t run_list_status)"
-        printf '%-20s %s\n' "--------------------" "------"
-        for s in "${STAGES[@]}"; do
-            if is_done "${s}"; then st="${C_GRN}$(t run_done)${C_RST}"; else st="${C_DIM}$(t run_pending)${C_RST}"; fi
-            printf '%-20s %b\n' "${s}" "${st}"
+        printf '\n%-8s %-20s %s\n' "#" "$(t run_list_short)" "$(t run_list_status)"
+        printf '%-8s %-20s %s\n' "--------" "--------------------" "------"
+        local i
+        for i in "${!STAGES[@]}"; do
+            if is_done "${STAGES[$i]}"; then st="${C_GRN}$(t run_done)${C_RST}"; else st="${C_DIM}$(t run_pending)${C_RST}"; fi
+            printf '%-8s %-20s %b\n' "$((i + 1))" "${STAGE_SHORTS[$i]}" "${st}"
         done
         echo
         ;;
@@ -78,12 +65,11 @@ case "${cmd}" in
         target="${2:-}"
         [[ -n "${target}" ]] || die "$(t run_err_stage_arg)"
         match=""
-        for s in "${STAGES[@]}"; do [[ "${s}" == ${target}* ]] && match="${s}" && break; done
-        if [[ -z "${match}" && "${target}" == "06_truba" ]]; then
-            match="06_truba_pack"
+        if match="$(resolve_stage_name "${target}")"; then
+            run_stage "${match}"
+        else
+            die "$(t run_err_no_match "${target}")"
         fi
-        [[ -n "${match}" ]] || die "$(t run_err_no_match "${target}")"
-        run_stage "${match}"
         ;;
     all)
         log_info "$(t run_all_start "${DRY_RUN}")"

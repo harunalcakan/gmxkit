@@ -43,23 +43,26 @@ done
 log_section() { echo ""; echo "======== $* ========"; }
 
 _ensure_md_launcher() {
-    # Global install: launcher lives in GMXKIT_HOME only
-    if [[ "${WORKDIR}" != "${GMXKIT_HOME}" ]]; then
-        log_info "$(t install_launcher_global "${GMXKIT_HOME}/md" "${GMXKIT_HOME}/md")"
-        return 0
-    fi
-    local launcher="${WORKDIR}/md"
-    if [[ -x "${launcher}" ]]; then
-        log_ok "./md zaten var"
-        return 0
-    fi
-    cat > "${launcher}" <<'LAUNCH'
+    chmod +x "${GMXKIT_HOME}/gmxkit" "${GMXKIT_HOME}/md" 2>/dev/null || true
+}
+
+_install_global_command() {
+    local bindir="${HOME}/.local/bin"
+    local wrapper="${bindir}/gmxkit"
+    mkdir -p "${bindir}"
+    cat > "${wrapper}" <<EOF
 #!/usr/bin/env bash
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-exec bash "${ROOT}/mdprep/md.sh" "$@"
-LAUNCH
-    chmod +x "${launcher}"
-    log_ok "./md oluşturuldu"
+export GMXKIT_HOME="${GMXKIT_HOME}"
+exec bash "\${GMXKIT_HOME}/mdprep/md.sh" "\$@"
+EOF
+    chmod +x "${wrapper}"
+    log_ok "$(t install_global_cmd "${wrapper}")"
+    case ":${PATH}:" in
+        *":${bindir}:"*) ;;
+        *)
+            log_info "$(t install_path_hint "${bindir}")"
+            ;;
+    esac
 }
 
 _confirm_apt() {
@@ -111,6 +114,13 @@ _install_report() {
 }
 
 main_install() {
+    WORKDIR="${GMXKIT_HOME}"
+    export GMXKIT_WORKDIR="${WORKDIR}"
+    LOG_DIR="${WORKDIR}/.gmxkit/logs"
+    STATE_DIR="${WORKDIR}/.gmxkit/state"
+    BACKUP_DIR="${WORKDIR}/.gmxkit/backups"
+    mkdir -p "${LOG_DIR}" "${STATE_DIR}" "${BACKUP_DIR}"
+
     log_section "$(t install_title)"
     log_info "WORKDIR: ${WORKDIR}"
     log_info "$(t install_gmx_note)"
@@ -120,6 +130,7 @@ main_install() {
         "${MDPREP_DIR}/lib/"*.sh "${MDPREP_DIR}/stages/"*.sh 2>/dev/null || true
 
     _ensure_md_launcher
+    _install_global_command
 
     local setup_args=()
     [[ "${RECREATE}" -eq 1 ]] && setup_args+=(--recreate)
@@ -147,6 +158,7 @@ main_install() {
     echo ""
     echo "════════════════════════════════════════════════════════════"
     echo "$(t install_done_banner)"
+    echo "$(t install_done_usage)"
     echo "$(t install_done_gmx)"
     echo "$(t install_done_guide "$(docs_guide_path)")"
     echo "════════════════════════════════════════════════════════════"

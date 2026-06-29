@@ -39,6 +39,8 @@ fi
 
 # shellcheck source=lib/common.sh
 source "${MDPREP_DIR}/lib/common.sh"
+# shellcheck source=lib/stages.sh
+source "${MDPREP_DIR}/lib/stages.sh"
 
 RUN_SCRIPT="${WORKDIR}/run_local_md.sh"
 BIND_SCRIPT="${WORKDIR}/check_binding.sh"
@@ -51,34 +53,33 @@ INSTALL_SH="${MDPREP_DIR}/lib/install.sh"
 
 # run.sh ile aynı sıra (stage 06 RUN_TARGET'a göre)
 _build_stage_labels() {
+    stages_init
+    STAGE_NAMES=( "${STAGES[@]}" )
+    local _shorts=( "${STAGE_SHORTS[@]}" )
+    STAGE_SHORTS=( "${_shorts[@]}" )
     if [[ "${RUN_TARGET:-local}" == "truba" ]]; then
-        _STAGE_06_NAME="06_truba_pack"
-        _STAGE_06_LABEL="$(t stage_06_truba)"
+        STAGE_LABELS=(
+            "$(t stage_00)"
+            "$(t stage_00b)"
+            "$(t stage_01)"
+            "$(t stage_02)"
+            "$(t stage_03)"
+            "$(t stage_04)"
+            "$(t stage_05)"
+            "$(t stage_06_truba)"
+        )
     else
-        _STAGE_06_NAME="06_local_md"
-        _STAGE_06_LABEL="$(t stage_06_local)"
+        STAGE_LABELS=(
+            "$(t stage_00)"
+            "$(t stage_00b)"
+            "$(t stage_01)"
+            "$(t stage_02)"
+            "$(t stage_03)"
+            "$(t stage_04)"
+            "$(t stage_05)"
+            "$(t stage_06_local)"
+        )
     fi
-    STAGE_IDS=( "00" "00b" "01" "02" "03" "04" "05" "06" )
-    STAGE_NAMES=(
-        "00_check_env"
-        "00b_prepare_metallo"
-        "01_protein"
-        "02_ligand"
-        "03_complex"
-        "04_solvate_ions"
-        "05_index_posre"
-        "${_STAGE_06_NAME}"
-    )
-    STAGE_LABELS=(
-        "$(t stage_00)"
-        "$(t stage_00b)"
-        "$(t stage_01)"
-        "$(t stage_02)"
-        "$(t stage_03)"
-        "$(t stage_04)"
-        "$(t stage_05)"
-        "${_STAGE_06_LABEL}"
-    )
 }
 _build_stage_labels
 
@@ -89,6 +90,7 @@ $(t usage_title)
 $(t usage_menu)
 $(t usage_same)
 
+$(t usage_stages "$(stages_usage_line)")
 $(t usage_cli)
 $(t usage_queue)
 $(t usage_analyze)
@@ -133,11 +135,11 @@ _print_status_board() {
     local i
     printf '\n%-4s %-36s %s\n' "$(t hdr_id)" "$(t hdr_stage)" "$(t hdr_status)"
     printf '%-4s %-36s %s\n' "----" "------------------------------------" "------"
-    for i in "${!STAGE_IDS[@]}"; do
+    for i in "${!STAGE_NAMES[@]}"; do
         local st
         st="$(t status_waiting)"
         is_done "${STAGE_NAMES[$i]}" && st="${C_GRN}$(t status_done)${C_RST}"
-        printf '%-4s %-36s %b\n' "${STAGE_IDS[$i]}" "${STAGE_LABELS[$i]}" "${st}"
+        printf '%-8s %-36s %b\n' "${STAGE_SHORTS[$i]}" "${STAGE_LABELS[$i]}" "${st}"
     done
     echo ""
 }
@@ -158,7 +160,7 @@ _next_prep_stage() {
     local i
     for i in "${!STAGE_NAMES[@]}"; do
         if ! is_done "${STAGE_NAMES[$i]}"; then
-            echo "${STAGE_IDS[$i]}|${STAGE_LABELS[$i]}"
+            echo "${STAGE_SHORTS[$i]}|${STAGE_LABELS[$i]}"
             return 0
         fi
     done
@@ -251,16 +253,11 @@ _smart_recommendation() {
 
 _print_main_menu_actions() {
     if _prep_complete; then
-        echo "$(t menu_queue)"
-        echo "$(t menu_sim)"
-        echo "$(t menu_control)"
-        echo "$(t menu_analyze)"
-        echo "  ─────────────────────────────────────────────"
         echo "$(t menu_prep)"
+        echo "$(t menu_sim)"
+        echo "$(t menu_analyze)"
         echo "$(t menu_tools)"
         echo "$(t menu_exit)"
-        echo ""
-        echo "  ${C_DIM}$(t menu_hint_fg)${C_RST}"
     else
         echo "$(t menu_prep_only)"
         echo "$(t menu_tools_short)"
@@ -270,26 +267,41 @@ _print_main_menu_actions() {
     fi
 }
 
+_print_project_header() {
+    local prot lig ff
+    prot="$(_file_mark "${PROTEIN_PDB}" "${PROTEIN_PDB}")"
+    lig="$(_file_mark "${LIGAND_MOL2}" "${LIGAND_MOL2}")"
+    if [[ -e "${WORKDIR}/${FF_DIR}" ]]; then
+        ff="${C_GRN}${FF_DIR} ✓${C_RST}"
+    else
+        ff="${C_DIM}${FF_DIR} $(t input_missing)${C_RST}"
+    fi
+    printf '  %s: %s\n' "$(t hdr_project)" "${WORKDIR}"
+    printf '  %s:  %b  %b  %b\n' "$(t hdr_inputs)" "${prot}" "${lig}" "${ff}"
+}
+
+_gmxkit_installed() {
+    [[ -f "${GMXKIT_HOME}/.gmxkit/state/.installed" ]] || \
+        [[ -f "${MDPREP_DIR}/.cgenff_python_path" ]]
+}
+
 _dispatch_main_choice() {
     local choice="$1"
     if _prep_complete; then
-        case "${choice^^}" in
-            1|J) bash "${QUEUE_SH}" menu ;;
-            2|S) _menu_simulation ;;
-            3|K) _menu_binding ;;
-            6|L) bash "${ANALYZE_SH}" all; _pause ;;
-            4|P) _menu_prep ;;
-            5|A) _menu_tools ;;
-            0|Q) echo "$(t exit_msg)"; exit 0 ;;
+        case "${choice}" in
+            1) _menu_prep ;;
+            2) _menu_simulation ;;
+            3) bash "${ANALYZE_SH}" all; _pause ;;
+            4) _menu_tools ;;
+            0) echo "$(t exit_msg)"; exit 0 ;;
             "") return 0 ;;
-            R) bash "${QUEUE_SH}" status ;;
             *) log_warn "$(t warn_main_full)" ;;
         esac
     else
-        case "${choice^^}" in
-            1|P) _menu_prep ;;
-            2|A) _menu_tools ;;
-            0|Q) echo "$(t exit_msg)"; exit 0 ;;
+        case "${choice}" in
+            1) _menu_prep ;;
+            2) _menu_tools ;;
+            0) echo "$(t exit_msg)"; exit 0 ;;
             "") return 0 ;;
             *) log_warn "$(t warn_main_prep)" ;;
         esac
@@ -300,7 +312,7 @@ _suggest_next() {
     local i
     for i in "${!STAGE_NAMES[@]}"; do
         if ! is_done "${STAGE_NAMES[$i]}"; then
-            echo "${STAGE_IDS[$i]} — ${STAGE_LABELS[$i]}"
+            echo "${STAGE_SHORTS[$i]} — ${STAGE_LABELS[$i]}"
             return 0
         fi
     done
@@ -308,16 +320,13 @@ _suggest_next() {
 }
 
 _run_stage() {
-    local id="$1" force="${2:-0}"
-    local i name=""
-    for i in "${!STAGE_IDS[@]}"; do
-        [[ "${STAGE_IDS[$i]}" == "${id}" ]] && name="${STAGE_NAMES[$i]}" && break
-    done
-    [[ -n "${name}" ]] || { log_warn "$(t invalid_stage "${id}")"; return 1; }
+    local token="$1" force="${2:-0}"
+    local name
+    name="$(resolve_stage_name "${token}")" || { log_warn "$(t invalid_stage "${token}")"; return 1; }
     if [[ "${force}" == "1" ]]; then
-        FORCE=1 bash "${RUN_SH}" stage "${id}"
+        FORCE=1 bash "${RUN_SH}" stage "${token}"
     else
-        bash "${RUN_SH}" stage "${id}"
+        bash "${RUN_SH}" stage "${token}"
     fi
 }
 
@@ -347,12 +356,14 @@ _menu_prep() {
         echo "╔══════════════════════════════════════════╗"
         echo "║$(t menu_prep_title)║"
         echo "╚══════════════════════════════════════════╝"
-        local i
-        for i in "${!STAGE_IDS[@]}"; do
-            printf '  [%s] %s  %s\n' "${STAGE_IDS[$i]}" "$(_stage_done_mark "${i}")" "${STAGE_LABELS[$i]}"
-        done
         echo ""
         echo "$(t menu_prep_all)"
+        local i n
+        for i in "${!STAGE_NAMES[@]}"; do
+            n=$((i + 2))
+            printf '  %d  %-8s %s  %s\n' "${n}" "${STAGE_SHORTS[$i]}" "$(_stage_done_mark "${i}")" "${STAGE_LABELS[$i]}"
+        done
+        echo ""
         echo "$(t menu_prep_force)"
         echo "$(t menu_prep_back)"
         echo ""
@@ -360,17 +371,35 @@ _menu_prep() {
         [[ -z "${choice}" ]] && continue
         case "${choice}" in
             0) return 0 ;;
-            a|A)
+            1)
                 bash "${RUN_SH}" all
                 _pause
                 ;;
             f|F)
                 read -r -p "$(t prompt_force_stage)" fid
-                [[ -n "${fid}" ]] && { _run_stage "${fid}" 1; _pause; }
+                if [[ -n "${fid}" && "${fid}" =~ ^[0-9]+$ ]]; then
+                    local idx=$((fid - 2))
+                    if [[ "${idx}" -ge 0 && "${idx}" -lt "${#STAGE_NAMES[@]}" ]]; then
+                        _run_stage "${STAGE_SHORTS[$idx]}" 1
+                        _pause
+                    else
+                        log_warn "$(t invalid_choice)"
+                    fi
+                fi
                 ;;
             *)
-                _run_stage "${choice}" 0
-                _pause
+                if [[ "${choice}" =~ ^[0-9]+$ ]]; then
+                    local idx=$((choice - 2))
+                    if [[ "${idx}" -ge 0 && "${idx}" -lt "${#STAGE_NAMES[@]}" ]]; then
+                        _run_stage "${STAGE_SHORTS[$idx]}" 0
+                        _pause
+                    else
+                        log_warn "$(t invalid_choice)"
+                    fi
+                else
+                    _run_stage "${choice}" 0
+                    _pause
+                fi
                 ;;
         esac
     done
@@ -384,11 +413,33 @@ _menu_simulation() {
         echo "╚══════════════════════════════════════════╝"
         _print_md_progress
         echo ""
+        echo "$(t menu_sim_chain)"
+        echo "$(t menu_sim_queue)"
+        echo "$(t menu_sim_fg)"
+        echo "$(t menu_sim_check)"
+        echo "$(t menu_prep_back)"
+        read -r -p "$(t prompt_choice)" c
+        case "${c}" in
+            0) return 0 ;;
+            1) bash "${QUEUE_SH}" chain; _pause ;;
+            2) bash "${QUEUE_SH}" menu ;;
+            3) _menu_simulation_fg ;;
+            4) _menu_binding ;;
+            *) log_warn "$(t invalid_choice)" ;;
+        esac
+    done
+}
+
+_menu_simulation_fg() {
+    while true; do
+        echo ""
+        echo "╔══════════════════════════════════════════╗"
+        echo "║$(t menu_sim_fg_title)║"
+        echo "╚══════════════════════════════════════════╝"
         echo "$(t menu_sim_nvt)"
         echo "$(t menu_sim_npt)"
         echo "$(t menu_sim_md)"
         echo "$(t menu_sim_resume)"
-        echo "$(t menu_sim_nvt_y)"
         echo "$(t menu_prep_back)"
         read -r -p "$(t prompt_choice)" c
         case "${c}" in
@@ -397,7 +448,6 @@ _menu_simulation() {
             2) cmd_md npt; _pause ;;
             3) cmd_md md; _pause ;;
             4) cmd_md resume; _pause ;;
-            5) cmd_md nvt -y; _pause ;;
             *) log_warn "$(t invalid_choice)" ;;
         esac
     done
@@ -440,6 +490,8 @@ _menu_tools() {
         echo "$(t tool_config)"
         echo "$(t tool_guide)"
         echo "$(t tool_setup)"
+        echo "$(t tool_lang)"
+        echo "$(t tool_install)"
         echo "$(t menu_prep_back)"
         read -r -p "$(t prompt_choice)" c
         case "${c}" in
@@ -461,10 +513,17 @@ _menu_tools() {
                 echo "  $(t tool_setup_opts)"
                 read -r -p "$(t prompt_choice)" s
                 case "${s}" in
-                    a|A) bash "${MDPREP_DIR}/setup_env.sh"; _pause ;;
-                    b|B) bash "${MDPREP_DIR}/setup_env.sh" --system; _pause ;;
+                    1) bash "${MDPREP_DIR}/setup_env.sh"; _pause ;;
+                    2) bash "${MDPREP_DIR}/setup_env.sh" --system; _pause ;;
                 esac
                 ;;
+            8)
+                echo "  en | tr"
+                read -r -p "$(t prompt_choice)" lang
+                [[ -n "${lang}" ]] && cmd_lang "${lang}"
+                _pause
+                ;;
+            9) bash "${INSTALL_SH}"; _pause ;;
             *) log_warn "$(t invalid_choice)" ;;
         esac
     done
@@ -488,7 +547,7 @@ _menu_clean_confirm() {
 
 orchestrator_menu() {
     clear 2>/dev/null || true
-    if [[ ! -f "${STATE_DIR}/.installed" ]]; then
+    if ! _gmxkit_installed; then
         echo ""
         echo "  ${C_YLW}$(t first_install)${C_RST}"
         echo ""
@@ -499,7 +558,7 @@ orchestrator_menu() {
         echo "║                        GmxKit                            ║"
         echo "║              $(t app_subtitle)                   ║"
         echo "╠══════════════════════════════════════════════════════════╣"
-        printf "║  %s\n" "${WORKDIR}"
+        _print_project_header
         echo "╚══════════════════════════════════════════════════════════╝"
         echo ""
         _print_compact_header
@@ -527,11 +586,20 @@ main_cli() {
         menu) orchestrator_menu ;;
         help|-h|--help) usage ;;
         check|env) exec bash "${RUN_SH}" check ;;
-        prep|all) exec bash "${RUN_SH}" all ;;
+        prep|all)
+            if [[ $# -gt 0 ]]; then
+                exec bash "${RUN_SH}" stage "$1"
+            else
+                exec bash "${RUN_SH}" all
+            fi
+            ;;
         status|list) exec bash "${RUN_SH}" list ;;
         reset) exec bash "${RUN_SH}" reset ;;
         clean|cleanup) cmd_clean "$@" ;;
-        stage) exec bash "${RUN_SH}" stage "$@" ;;
+        stage)
+            [[ -n "${1:-}" ]] || die "$(t run_err_stage_arg)"
+            exec bash "${RUN_SH}" stage "$1"
+            ;;
         setup) exec bash "${MDPREP_DIR}/setup_env.sh" "$@" ;;
         binding|check-binding) cmd_binding "$@" ;;
         queue|jobs) bash "${QUEUE_SH}" "$@" ;;
@@ -541,7 +609,12 @@ main_cli() {
         init) bash "${MDPREP_DIR}/lib/init_project.sh" "${1:-.}" ;;
         lang) cmd_lang "$@" ;;
         nvt|npt|md|resume) cmd_md "${cmd}" "$@" ;;
-        *) die "$(t err_unknown_cmd "${cmd}")" ;;
+        *)
+            if resolve_stage_name "${cmd}" >/dev/null 2>&1; then
+                exec bash "${RUN_SH}" stage "${cmd}"
+            fi
+            die "$(t err_unknown_cmd "${cmd}")"
+            ;;
     esac
 }
 
