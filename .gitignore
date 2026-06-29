@@ -44,9 +44,8 @@ processed.gro
 index*.ndx
 *.xvg
 
-# Force field — download separately (large, licensed bundle)
-charmm36-*.ff/
-*.ff/
+# Force field is bundled in this repo (charmm36-*.ff at install root).
+# Project folders use a symlink; do not commit extra .ff copies under projects.
 
 # Slurm (optional local copies)
 *.slurm

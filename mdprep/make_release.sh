@@ -46,8 +46,8 @@ GmxKit ${VERSION} — release package
 1. Read INSTALL.md (full steps)
 2. Use QUICKSTART_CHECKLIST.md while setting up
 3. Install GROMACS (gmx) — not included
-4. Add charmm36-*.ff/ force field folder to this directory
-5. Run:  chmod +x md && ./md install && ./md
+4. Force field charmm36-*.ff/ is included in this package
+5. Run:  chmod +x gmxkit md && ./gmxkit install && gmxkit
 
 GitHub: https://github.com/harunalcakan/gmxkit
 EOF

@@ -13,9 +13,8 @@ gmxkit lang en
 
 | You provide | GmxKit provides |
 |-------------|-----------------|
-| **GROMACS** (`gmx` on PATH) | Python venv (numpy, networkx) |
-| **CHARMM36 + CGenFF** force field folder | Prep pipeline, queue, analysis |
-| `protein.pdb`, `ligand.mol2` per project | MDP templates, checkpoints, logs |
+| **GROMACS** (`gmx` on PATH) | Python venv, prep pipeline, queue, analysis |
+| `protein.pdb`, `ligand.mol2` per project | **CHARMM36 + CGenFF** (bundled), MDP templates, logs |
 
 GmxKit does **not** install GROMACS. You must have `gmx` available before running simulations.
 
@@ -27,7 +26,7 @@ Details: [Installation guide](mdprep/docs/en/INSTALL.md) · [First-run checklist
 git clone https://github.com/harunalcakan/gmxkit.git ~/opt/gmxkit
 cd ~/opt/gmxkit
 chmod +x gmxkit md
-# add charmm36-*.ff/ here (once)
+# charmm36-*.ff/ is included in the repo
 ./gmxkit install
 ```
 

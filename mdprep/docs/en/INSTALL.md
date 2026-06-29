@@ -10,7 +10,7 @@ Step-by-step setup on **WSL2 (Ubuntu)** or **Linux**. GmxKit does not run native
 |------|--------|
 | WSL2 + Ubuntu (Windows users) | [Microsoft WSL guide](https://learn.microsoft.com/en-us/windows/wsl/install) |
 | **GROMACS** (`gmx` on PATH) | **Required.** Install yourself — GmxKit never installs GROMACS |
-| **CHARMM36 + CGenFF** force field | Not in GitHub; add once to the GmxKit install folder |
+| **CHARMM36 + CGenFF** force field | **Included** in repo / release zip |
 | Python 3, perl | Installed by `gmxkit install` |
 
 ---
@@ -29,20 +29,17 @@ chmod +x gmxkit md mdprep/*.sh mdprep/lib/*.sh mdprep/stages/*.sh
 
 ---
 
-## 2 — Force field (once)
+## 2 — Force field
 
-Download a **CHARMM36m + CGenFF** bundle (folder like `charmm36-feb2026_ljpme_cgenff-5.0.ff`).
-
-Place it in the **GmxKit install folder** (same level as `gmxkit`):
+**Included in the repository** — after clone or unzip you should already have:
 
 ```
-~/opt/gmxkit/
-├── gmxkit
-├── mdprep/
-└── charmm36-feb2026_ljpme_cgenff-5.0.ff/
+~/opt/gmxkit/charmm36-feb2026_ljpme_cgenff-5.0.ff/
 ```
 
-If the folder name differs, edit `mdprep/config.sh` → `FF_NAME` / `FF_DIR`.
+If the folder name differs from your `mdprep/config.sh` → `FF_NAME` / `FF_DIR`, rename the folder or edit config.
+
+See [FORCE_FIELD.md](../FORCE_FIELD.md) for attribution notes.
 
 ---
 
