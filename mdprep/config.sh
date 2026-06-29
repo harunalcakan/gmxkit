@@ -13,7 +13,7 @@
 # -----------------------------------------------------------------------------
 # 0) ÇALIŞMA DİZİNİ
 # -----------------------------------------------------------------------------
-# WORKDIR: data directory (protein.pdb, outputs). Empty = auto (see lib/common.sh).
+# WORKDIR: data directory (protein.pdb, outputs). Empty = current directory (see lib/common.sh).
 #   cd ~/myproject && ~/opt/gmxkit/md     → uses ~/myproject
 #   ./md init ~/myproject                 → scaffold new project
 WORKDIR=""
@@ -77,13 +77,13 @@ PDB2GMX_INTER="no"
 PDB2GMX_TER="no"
 
 # -----------------------------------------------------------------------------
-# 3c) METALLOenzim (Karbonik Anhidraz / Zn2+) — kılavuz Adım 1–3
+# 3c) METALLOenzim (opsiyonel — Zn²⁺ vb.) — gmxkit.env ile açın
 # -----------------------------------------------------------------------------
 METAL_ENZYME="no"                     # yes → metalloenzyme prep (step: metal); set in gmxkit.env
 METAL_CHAIN="A"
 METAL_ION_RESNAME="ZN"
-# Zn koordinasyon Histidinleri → HSD (CA tipik: 94, 96, 119)
-METAL_HSD_RESIDUES="94 96 119"
+# METAL_ENZYME=yes iken: Zn koordinasyon histidin resid numaraları (PDB'nize göre)
+METAL_HSD_RESIDUES=""
 
 # -----------------------------------------------------------------------------
 # 4) LİGAND KİMLİĞİ
@@ -152,7 +152,7 @@ INTERACTIVE_MD="yes"
 # Ligand–aktif site kontrolü (gmx mindist + RMSD; VMD gerekmez)
 CHECK_BINDING="yes"
 CHECK_BINDING_STRICT="no"         # yes → eşik aşılırsa script durur
-CHECK_LIG_RESNAME="2Q38"          # gro/tpr ligand residue adı (cgenff)
+CHECK_LIG_RESNAME=""              # boş = LIG_RESNAME; analiz/binding için gro/tpr ligand adı
 CHECK_ZN_LIG_WARN="0.35"          # nm — uyarı
 CHECK_ZN_LIG_FAIL="0.50"
 CHECK_HSD_LIG_WARN="0.40"
@@ -243,7 +243,7 @@ ANALYSIS_OUT_DIR=""
 ANALYSIS_PBC_XTC="md_pbc.xtc"
 ANALYSIS_FIT_GROUP="Backbone"           # trjconv fit + ligand RMSD hizalama
 ANALYSIS_CENTER_GROUP="Protein"         # trjconv -center
-ANALYSIS_LIG_GROUP=""                   # boş = CHECK_LIG_RESNAME (2Q38)
+ANALYSIS_LIG_GROUP=""                   # boş = CHECK_LIG_RESNAME
 ANALYSIS_RMSD_BB_GROUP="Backbone"       # protein RMSD
 ANALYSIS_RMSF_GROUP="C-alpha"
 ANALYSIS_RG_GROUP="Protein"

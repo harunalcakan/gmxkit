@@ -36,7 +36,7 @@ cmd_init_project() {
         cp -f "${MDPREP_DIR}/profiles/gmxkit.env.example" "${target}/gmxkit.env" 2>/dev/null || \
             cat >"${target}/gmxkit.env" <<'EOF'
 # Project settings (optional overrides for mdprep/config.sh)
-# CHECK_LIG_RESNAME="2Q38"
+# CHECK_LIG_RESNAME="LIG"
 # METAL_ENZYME="no"
 EOF
     fi

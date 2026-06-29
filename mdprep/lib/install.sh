@@ -32,7 +32,7 @@ GROMACS (gmx) otomatik kurulmaz. Siz kurun; config.sh:
   GMX="gmx"                    # PATH'te ise
   GMX="/opt/gromacs/bin/gmx"   # tam yol
 
-Projeyle birlikte (zip/USB): protein.pdb, ligand.mol2, *.mdp, charmm36-*.ff/
+Projeyle birlikte: ayrı klasörde protein.pdb, ligand.mol2. Kurulum klasöründe charmm36-*.ff/ ve *.mdp şablonları paketlenir.
 EOF
             exit 0
             ;;
@@ -104,11 +104,14 @@ _install_report() {
             echo "  EKSIK  gmx — siz kurun; config.sh → GMX=..."
         fi
         echo ""
-        echo "$(t install_report_pkg)"
-        for f in "${PROTEIN_PDB}" "${LIGAND_MOL2}" em.mdp nvt.mdp npt.mdp md.mdp; do
-            [[ -f "${WORKDIR}/${f}" ]] && echo "  OK  ${f}" || echo "  EKSIK  ${f}"
+        echo "$(t install_report_bundle)"
+        for f in em.mdp nvt.mdp npt.mdp md.mdp ions.mdp sort_mol2_bonds.pl; do
+            [[ -f "${GMXKIT_HOME}/${f}" ]] && echo "  OK  ${f}" || echo "  EKSIK  ${f}"
         done
-        [[ -d "${WORKDIR}/${FF_DIR}" ]] && echo "  OK  ${FF_DIR}/" || echo "  EKSIK  ${FF_DIR}/"
+        [[ -d "${GMXKIT_HOME}/${FF_DIR}" ]] && echo "  OK  ${FF_DIR}/" || echo "  EKSIK  ${FF_DIR}/"
+        echo ""
+        echo "$(t install_report_project_hint)"
+        echo "$(t install_report_project_note)"
     } | tee "${report}"
     log_info "$(t install_report_path "${report}")"
 }
@@ -147,9 +150,12 @@ main_install() {
     date -Iseconds > "${STATE_DIR}/.installed" 2>/dev/null || date > "${STATE_DIR}/.installed"
 
     log_section "$(t install_check_section)"
-    bash "${MDPREP_DIR}/run.sh" check || log_warn "$(t install_warn_check)"
+    GMXKIT_CHECK_SCOPE=install bash "${MDPREP_DIR}/run.sh" check || log_warn "$(t install_warn_check)"
 
     _install_report
+
+    log_section "$(t install_cleanup_section)"
+    bash "${MDPREP_DIR}/lib/cleanup_install_home.sh" -y || true
 
     if ! command -v "${GMX}" >/dev/null 2>&1; then
         log_warn "$(t install_warn_gmx)"

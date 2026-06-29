@@ -39,17 +39,17 @@ _resolve_workdir() {
     elif [[ -n "${WORKDIR}" ]]; then
         w="$(cd "${WORKDIR}" && pwd)"
     else
-        cwd="$(pwd)"
-        if [[ "${cwd}" == "${GMXKIT_HOME}" ]]; then
-            w="${GMXKIT_HOME}"
-        elif [[ -f "${cwd}/gmxkit.env" || -d "${cwd}/.gmxkit" \
-            || -f "${cwd}/protein.pdb" || -f "${cwd}/ligand.mol2" ]]; then
-            w="${cwd}"
-        else
-            w="${GMXKIT_HOME}"
-        fi
+        w="$(pwd)"
     fi
     printf '%s' "${w}"
+}
+
+is_install_home() {
+    [[ "${WORKDIR}" == "${GMXKIT_HOME}" ]]
+}
+
+project_has_inputs() {
+    [[ -f "${WORKDIR}/${PROTEIN_PDB}" && -f "${WORKDIR}/${LIGAND_MOL2}" ]]
 }
 
 WORKDIR="$(_resolve_workdir)"
@@ -59,6 +59,24 @@ if [[ -f "${WORKDIR}/gmxkit.env" ]]; then
     # shellcheck source=/dev/null
     source "${WORKDIR}/gmxkit.env"
 fi
+
+if [[ -z "${CHECK_LIG_RESNAME:-}" ]]; then
+    CHECK_LIG_RESNAME="${LIG_RESNAME}"
+fi
+
+mol2_molecule_name() {
+    local mol2="${1:-${WORKDIR}/${LIGAND_MOL2}}"
+    [[ -f "${mol2}" ]] || return 1
+    awk '/@<TRIPOS>MOLECULE/{getline; gsub(/[[:space:]]/,"",$0); print; exit}' "${mol2}"
+}
+
+_is_install_check() {
+    [[ "${GMXKIT_CHECK_SCOPE:-}" == "install" ]] && return 0
+    [[ "${WORKDIR}" == "${GMXKIT_HOME}" \
+        && ! -f "${WORKDIR}/${PROTEIN_PDB}" \
+        && ! -f "${WORKDIR}/${LIGAND_MOL2}" ]] && return 0
+    return 1
+}
 
 LOG_DIR="${WORKDIR}/.gmxkit/logs"
 STATE_DIR="${WORKDIR}/.gmxkit/state"
@@ -71,11 +89,10 @@ _ensure_project_ff() {
     ln -snf "${GMXKIT_HOME}/${FF_DIR}" "${WORKDIR}/${FF_DIR}"
 }
 
-# Auto-scaffold project folder when user drops protein.pdb + ligand.mol2 in a directory
+# Scaffold project folder (templates + FF symlink) — never mutate install home
 _scaffold_project_dir() {
     local target="$1"
     [[ "${target}" != "${GMXKIT_HOME}" ]] || return 0
-    [[ -f "${target}/${PROTEIN_PDB}" || -f "${target}/${LIGAND_MOL2}" ]] || return 0
 
     mkdir -p "${target}/.gmxkit/logs" "${target}/.gmxkit/state" "${target}/.gmxkit/backups"
 

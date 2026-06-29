@@ -78,7 +78,11 @@ _mindist_groups() {
 
 _make_hsd_ndx() {
     local gro="$1" base_ndx="$2" out_ndx="$3"
-    local resid_list="${METAL_HSD_RESIDUES:-94 96 119}"
+    local resid_list="${METAL_HSD_RESIDUES:-}"
+    if [[ -z "${resid_list}" ]]; then
+        _cb_fail "METAL_HSD_RESIDUES boş — gmxkit.env içinde Zn koordinasyon histidinlerini ayarlayın"
+        return 1
+    fi
     local ngrps
     ngrps="$(grep -c '^\[' "${base_ndx}")"
     ${GMX} make_ndx -f "${gro}" -n "${base_ndx}" -o "${out_ndx}" <<EOF >/dev/null 2>&1

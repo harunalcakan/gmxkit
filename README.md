@@ -18,7 +18,9 @@ source ~/.bashrc
 gmxkit check
 ```
 
-`gmxkit check` should show **gmx OK** and **force field OK**.
+`gmxkit install` checks **software only** (Python, CGenFF, bundled force field). It does not require `protein.pdb` or `ligand.mol2` in the install folder.
+
+Example inputs for testing: `examples/metalloenzyme-sample/` (optional).
 
 ---
 

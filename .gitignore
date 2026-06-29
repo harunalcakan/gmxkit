@@ -23,7 +23,7 @@ gmxkit.env
 *.log
 mdout.mdp
 
-# Generated topology / prep artifacts (keep templates in repo via *.mdp, *.pdb, *.mol2)
+# Generated topology / prep artifacts (keep templates in repo via *.mdp)
 topol*.itp
 posre*.itp
 lig.itp
@@ -33,12 +33,13 @@ lig_ini.pdb
 complex.gro
 solv*.gro
 processed.gro
-# keep source inputs:
-!protein.pdb
-!protein_prep.pdb
-!ligand.mol2
-!ligand_fix.mol2
-!ligand_sorted.mol2
+# Do not commit ad-hoc inputs at install root (use a project folder or examples/)
+/protein.pdb
+/protein_prep.pdb
+/ligand.mol2
+/ligand_fix.mol2
+/ligand_sorted.mol2
+/ligand_fix.str
 
 # Index / analysis scratch
 index*.ndx

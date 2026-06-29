@@ -50,7 +50,7 @@ cd ~/opt/gmxkit
 gmxkit install
 ```
 
-This creates the Python venv and registers **`~/.local/bin/gmxkit`**.
+This creates the Python venv, registers **`~/.local/bin/gmxkit`**, and runs a **software check** (Python, CGenFF, bundled force field). No `protein.pdb` or `ligand.mol2` is required in the install folder.
 
 If `gmxkit` is not found, add to `~/.bashrc`:
 
@@ -71,9 +71,10 @@ gmx --version
 Create a folder, add inputs, run GmxKit **from that folder**:
 
 ```bash
-mkdir ~/projects/ca1
-cp protein.pdb ligand.mol2 ~/projects/ca1/
-cd ~/projects/ca1
+mkdir ~/projects/my-system
+cp protein.pdb ligand.mol2 ~/projects/my-system/
+# optional demo: cp examples/metalloenzyme-sample/{protein.pdb,ligand.mol2} ~/projects/my-system/
+cd ~/projects/my-system
 gmxkit
 ```
 
@@ -82,7 +83,7 @@ No `init` required if `protein.pdb` and `ligand.mol2` are present — templates 
 Optional scaffold:
 
 ```bash
-gmxkit init ~/projects/ca1
+gmxkit init ~/projects/my-system
 ```
 
 **Windows folder via WSL:**

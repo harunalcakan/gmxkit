@@ -5,7 +5,8 @@ First public release — GROMACS protein–ligand MD prep, local job queue, and 
 ## Included in this zip
 
 - GmxKit scripts (`mdprep/`, `./md` launcher)
-- Example inputs: `protein.pdb`, `ligand.mol2`, MDP templates
+- Bundled: force field, MDP templates, helper scripts
+- Optional demo inputs: `examples/metalloenzyme-sample/`
 - CGenFF helper scripts (`cgenff_*.py`, `sort_mol2_bonds.pl`)
 - English + Turkish UI (`./md lang en|tr`)
 

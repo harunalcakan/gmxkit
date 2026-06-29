@@ -8,7 +8,7 @@
 #
 # Tarif (CA + ligand):
 #   trjconv -pbc mol -ur compact -center Protein -fit Backbone
-#   ligand RMSD: Backbone fit (trjconv) + 2Q38 RMSD (-fit none)
+#   ligand RMSD: Backbone fit (trjconv) + ligand RMSD (-fit none)
 #   protein RMSD: Backbone / Backbone
 # =============================================================================
 set -o nounset -o pipefail
@@ -25,12 +25,12 @@ ANALYSIS_OUT_DIR="${ANALYSIS_OUT_DIR:-${LOG_DIR}/analysis}"
 ANALYSIS_PBC_XTC="${ANALYSIS_PBC_XTC:-md_pbc.xtc}"
 ANALYSIS_FIT_GROUP="${ANALYSIS_FIT_GROUP:-Backbone}"
 ANALYSIS_CENTER_GROUP="${ANALYSIS_CENTER_GROUP:-Protein}"
-ANALYSIS_LIG_GROUP="${ANALYSIS_LIG_GROUP:-${CHECK_LIG_RESNAME:-2Q38}}"
+ANALYSIS_LIG_GROUP="${ANALYSIS_LIG_GROUP:-${CHECK_LIG_RESNAME:-${LIG_RESNAME}}}"
 ANALYSIS_RMSD_BB_GROUP="${ANALYSIS_RMSD_BB_GROUP:-Backbone}"
 ANALYSIS_RMSF_GROUP="${ANALYSIS_RMSF_GROUP:-C-alpha}"
 ANALYSIS_RG_GROUP="${ANALYSIS_RG_GROUP:-Protein}"
 ANALYSIS_SASA_PROTEIN="${ANALYSIS_SASA_PROTEIN:-Protein}"
-ANALYSIS_SASA_LIG="${ANALYSIS_SASA_LIG:-${CHECK_LIG_RESNAME:-2Q38}}"
+ANALYSIS_SASA_LIG="${ANALYSIS_SASA_LIG:-${CHECK_LIG_RESNAME:-${LIG_RESNAME}}}"
 
 REPORT="${ANALYSIS_OUT_DIR}/ANALYSIS_REPORT.txt"
 PY="$(find_python)" || die "python3 gerekli"
@@ -232,7 +232,7 @@ Analiz (PBC + RMSD/RMSF/Rg/SASA):
   ./md analyze rmsd      backbone + ligand RMSD
   ./md analyze report    raporu göster
 
-Grup tarifi: config.sh → ANALYSIS_* (Backbone fit, Protein center, 2Q38 ligand)
+Grup tarifi: config.sh → ANALYSIS_* (Backbone fit, Protein center, ligand residue)
 EOF
 }
 

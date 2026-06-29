@@ -53,6 +53,7 @@ ANALYZE_SH="${MDPREP_DIR}/lib/analyze_md.sh"
 AUDIT_SH="${MDPREP_DIR}/lib/audit_prep.sh"
 INSTALL_SH="${MDPREP_DIR}/lib/install.sh"
 FRESH_SH="${MDPREP_DIR}/lib/fresh_project.sh"
+CLEANUP_INSTALL_SH="${MDPREP_DIR}/lib/cleanup_install_home.sh"
 UNINSTALL_SH="${MDPREP_DIR}/lib/uninstall.sh"
 
 # run.sh ile aynı sıra (stage 06 RUN_TARGET'a göre)
@@ -102,6 +103,7 @@ $(t usage_audit)
 $(t usage_install)
 $(t usage_uninstall)
 $(t usage_fresh)
+$(t usage_cleanup_install)
 $(t usage_lang)
 $(t usage_init)
 $(t usage_project)
@@ -281,7 +283,12 @@ _print_main_menu_actions() {
 }
 
 _print_project_header() {
-    local prot lig ff
+    local prot lig ff note=""
+    if is_install_home; then
+        note="${C_YLW}$(t hdr_install_note)${C_RST}"
+    elif ! project_has_inputs; then
+        note="${C_YLW}$(t warn_no_inputs)${C_RST}"
+    fi
     prot="$(_file_mark "${PROTEIN_PDB}" "${PROTEIN_PDB}")"
     lig="$(_file_mark "${LIGAND_MOL2}" "${LIGAND_MOL2}")"
     if [[ -e "${WORKDIR}/${FF_DIR}" ]]; then
@@ -290,7 +297,20 @@ _print_project_header() {
         ff="${C_DIM}${FF_DIR} $(t input_missing)${C_RST}"
     fi
     printf '  %s: %s\n' "$(t hdr_project)" "${WORKDIR}"
+    [[ -n "${note}" ]] && printf '  %b\n' "${note}"
     printf '  %s:  %b  %b  %b\n' "$(t hdr_inputs)" "${prot}" "${lig}" "${ff}"
+}
+
+_require_project_workspace() {
+    if is_install_home; then
+        log_warn "$(t warn_install_dir_prep)"
+        return 1
+    fi
+    if ! project_has_inputs; then
+        log_warn "$(t warn_no_inputs)"
+        return 1
+    fi
+    return 0
 }
 
 _gmxkit_installed() {
@@ -304,7 +324,7 @@ _dispatch_main_choice() {
         case "${choice}" in
             1) _menu_prep ;;
             2) _menu_simulation ;;
-            3) bash "${ANALYZE_SH}" all; _pause ;;
+            3) _require_project_workspace && { bash "${ANALYZE_SH}" all; _pause; } || _pause ;;
             4) _menu_tools ;;
             0) echo "$(t exit_msg)"; exit 0 ;;
             "") return 0 ;;
@@ -411,6 +431,10 @@ cmd_clean() {
 }
 
 _menu_prep() {
+    if ! _require_project_workspace; then
+        _pause
+        return 0
+    fi
     while true; do
         echo ""
         echo "╔══════════════════════════════════════════╗"
@@ -458,6 +482,10 @@ _menu_prep() {
 }
 
 _menu_simulation() {
+    if ! _require_project_workspace; then
+        _pause
+        return 0
+    fi
     while true; do
         echo ""
         echo "╔══════════════════════════════════════════╗"
@@ -546,6 +574,7 @@ _menu_tools() {
         echo "$(t tool_install)"
         echo "$(t tool_system)"
         echo "$(t tool_fresh)"
+        echo "$(t tool_cleanup_install)"
         echo "$(t menu_prep_back)"
         read -r -p "$(t prompt_choice)" c
         case "${c}" in
@@ -580,6 +609,14 @@ _menu_tools() {
             9) bash "${INSTALL_SH}"; _pause ;;
             10) menu_system_type; _build_stage_labels; _pause ;;
             11) bash "${FRESH_SH}"; _pause ;;
+            12)
+                if is_install_home; then
+                    bash "${CLEANUP_INSTALL_SH}"
+                else
+                    log_warn "$(t cleanup_install_only_home)"
+                fi
+                _pause
+                ;;
             *) log_warn "$(t invalid_choice)" ;;
         esac
     done
@@ -654,6 +691,7 @@ main_cli() {
         reset) exec bash "${RUN_SH}" reset ;;
         clean|cleanup) cmd_clean "$@" ;;
         fresh) bash "${FRESH_SH}" "$@" ;;
+        cleanup-install|clean-install) bash "${CLEANUP_INSTALL_SH}" "$@" ;;
         stage)
             [[ -n "${1:-}" ]] || die "$(t run_err_stage_arg)"
             exec bash "${RUN_SH}" stage "$1"
