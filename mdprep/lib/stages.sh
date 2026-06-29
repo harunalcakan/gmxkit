@@ -36,8 +36,8 @@ stages_init() {
     STAGE_LEGACY_IDS=( "00" "00b" "01" "02" "03" "04" "05" "06" )
 }
 
-# Resolve CLI/menu token → full stage script basename (e.g. 01_protein)
-# Accepts: menu number 1–8, legacy 00/01/00b, short name, prefix match
+# Resolve CLI token → full stage script basename (e.g. 01_protein)
+# Accepts: menu # 2–9, legacy 00/01/00b, short name (check, protein, …)
 resolve_stage_name() {
     local target="${1:-}"
     local i n="${#STAGES[@]}"
@@ -45,8 +45,9 @@ resolve_stage_name() {
     [[ -n "${target}" ]] || return 1
     stages_init 2>/dev/null || true
 
-    if [[ "${target}" =~ ^[1-8]$ ]]; then
-        echo "${STAGES[$((target - 1))]}"
+    # Prep menu lists steps as #2–9 (not 1–8)
+    if [[ "${target}" =~ ^[2-9]$ ]]; then
+        echo "${STAGES[$((target - 2))]}"
         return 0
     fi
 

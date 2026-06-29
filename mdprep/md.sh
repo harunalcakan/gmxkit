@@ -358,29 +358,34 @@ _print_prep_system_line() {
 
 _run_stage() {
     local token="$1" force="${2:-0}"
-    resolve_stage_name "${token}" >/dev/null || { log_warn "$(t invalid_stage "${token}")"; return 1; }
+    local arg="${token}"
+    if [[ "${token}" =~ ^[2-9]$ ]]; then
+        arg="${STAGE_SHORTS[$((token - 2))]}"
+    fi
+    resolve_stage_name "${arg}" >/dev/null || { log_warn "$(t invalid_stage "${token}")"; return 1; }
     if [[ "${force}" == "1" ]]; then
-        FORCE=1 bash "${RUN_SH}" stage "${token}"
+        FORCE=1 bash "${RUN_SH}" stage "${arg}"
     else
-        bash "${RUN_SH}" stage "${token}"
+        bash "${RUN_SH}" stage "${arg}"
     fi
 }
 
 _run_prep_step() {
     local token="$1" force="${2:-0}"
-    local name short hint=""
-    if name="$(resolve_stage_name "${token}")"; then
-        short="$(stage_short_for "${name}")"
-        hint="$(stage_manual_hint "${short}")"
-    else
-        hint="$(stage_manual_hint "${token}")"
+    local arg="${token}" short hint=""
+    if [[ "${token}" =~ ^[2-9]$ ]]; then
+        arg="${STAGE_SHORTS[$((token - 2))]}"
+    elif resolve_stage_name "${token}" >/dev/null 2>&1; then
+        arg="$(stage_short_for "$(resolve_stage_name "${token}")")"
     fi
+    short="${arg}"
+    hint="$(stage_manual_hint "${short}")"
     if [[ -n "${hint}" ]]; then
         echo ""
         echo "  ${C_YLW}$(t prep_manual_note)${C_RST} ${hint}"
         echo ""
     fi
-    _run_stage "${token}" "${force}"
+    _run_stage "${arg}" "${force}"
 }
 
 cmd_binding() {
