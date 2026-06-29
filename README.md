@@ -26,6 +26,7 @@ Details: [Installation guide](mdprep/docs/en/INSTALL.md) · [First-run checklist
 ```bash
 git clone https://github.com/harunalcakan/gmxkit.git ~/opt/gmxkit
 cd ~/opt/gmxkit
+chmod +x gmxkit md
 # add charmm36-*.ff/ here (once)
 ./gmxkit install
 ```
