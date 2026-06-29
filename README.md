@@ -41,6 +41,14 @@ gmxkit uninstall
 gmxkit uninstall --purge-home   # also delete ~/opt/gmxkit (full clone)
 ```
 
+**Fresh project** (reset a project folder; keeps your 4 input files):
+
+```bash
+cd /path/to/project
+gmxkit fresh -y
+# keeps: protein.pdb, ligand.mol2, ligand_fix.mol2, ligand_fix.str, gmxkit.env
+```
+
 ## Use from any project folder
 
 ```bash

@@ -87,7 +87,8 @@ _collect_removable() {
         "${WORKDIR}"/*.xvg \
         "${WORKDIR}"/#* \
         "${LOG_DIR}/binding_checks"/* \
-        "${MDPREP_DIR}/logs/binding_checks"/* 2>/dev/null; do
+        "${LOG_DIR}/analysis"/* \
+        "${LOG_DIR}/queue"/*; do
         [[ -e "${g}" ]] && _out+=("${g}")
     done
     shopt -u nullglob

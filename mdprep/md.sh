@@ -52,6 +52,7 @@ QUEUE_SH="${MDPREP_DIR}/lib/job_queue.sh"
 ANALYZE_SH="${MDPREP_DIR}/lib/analyze_md.sh"
 AUDIT_SH="${MDPREP_DIR}/lib/audit_prep.sh"
 INSTALL_SH="${MDPREP_DIR}/lib/install.sh"
+FRESH_SH="${MDPREP_DIR}/lib/fresh_project.sh"
 UNINSTALL_SH="${MDPREP_DIR}/lib/uninstall.sh"
 
 # run.sh ile aynı sıra (stage 06 RUN_TARGET'a göre)
@@ -100,6 +101,7 @@ $(t usage_analyze)
 $(t usage_audit)
 $(t usage_install)
 $(t usage_uninstall)
+$(t usage_fresh)
 $(t usage_lang)
 $(t usage_init)
 $(t usage_project)
@@ -543,6 +545,7 @@ _menu_tools() {
         echo "$(t tool_lang)"
         echo "$(t tool_install)"
         echo "$(t tool_system)"
+        echo "$(t tool_fresh)"
         echo "$(t menu_prep_back)"
         read -r -p "$(t prompt_choice)" c
         case "${c}" in
@@ -576,6 +579,7 @@ _menu_tools() {
                 ;;
             9) bash "${INSTALL_SH}"; _pause ;;
             10) menu_system_type; _build_stage_labels; _pause ;;
+            11) bash "${FRESH_SH}"; _pause ;;
             *) log_warn "$(t invalid_choice)" ;;
         esac
     done
@@ -649,6 +653,7 @@ main_cli() {
         status|list) exec bash "${RUN_SH}" list ;;
         reset) exec bash "${RUN_SH}" reset ;;
         clean|cleanup) cmd_clean "$@" ;;
+        fresh) bash "${FRESH_SH}" "$@" ;;
         stage)
             [[ -n "${1:-}" ]] || die "$(t run_err_stage_arg)"
             exec bash "${RUN_SH}" stage "$1"
