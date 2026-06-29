@@ -267,6 +267,18 @@ _smart_recommendation() {
 }
 
 _print_main_menu_actions() {
+    if ! project_usable; then
+        echo "$(t menu_settings_only)"
+        echo "$(t menu_exit)"
+        if is_install_home; then
+            echo ""
+            echo "  ${C_DIM}$(t menu_hint_install_home)${C_RST}"
+        else
+            echo ""
+            echo "  ${C_DIM}$(t menu_hint_need_inputs)${C_RST}"
+        fi
+        return 0
+    fi
     if _prep_complete; then
         echo "$(t menu_prep)"
         echo "$(t menu_sim)"
@@ -320,6 +332,15 @@ _gmxkit_installed() {
 
 _dispatch_main_choice() {
     local choice="$1"
+    if ! project_usable; then
+        case "${choice}" in
+            1|2) _menu_tools ;;
+            0) echo "$(t exit_msg)"; exit 0 ;;
+            "") return 0 ;;
+            *) log_warn "$(t warn_main_settings_only)" ;;
+        esac
+        return 0
+    fi
     if _prep_complete; then
         case "${choice}" in
             1) _menu_prep ;;
@@ -645,7 +666,9 @@ orchestrator_menu() {
         echo "  ${C_YLW}$(t first_install)${C_RST}"
         echo ""
     fi
-    prompt_system_type_if_needed
+    if project_has_inputs; then
+        prompt_system_type_if_needed
+    fi
     while true; do
         echo ""
         echo "╔══════════════════════════════════════════════════════════╗"
@@ -655,19 +678,31 @@ orchestrator_menu() {
         _print_project_header
         echo "╚══════════════════════════════════════════════════════════╝"
         echo ""
-        _print_compact_header
-        echo ""
-        if ! _prep_complete; then
-            _print_status_board
+        if project_usable; then
+            _print_compact_header
+            echo ""
+            if ! _prep_complete; then
+                _print_status_board
+            fi
+            _smart_recommendation
+        else
+            echo "  ${C_YLW}$(t banner_project_locked)${C_RST}"
+            echo ""
+            if ! is_install_home; then
+                echo "  $(t banner_copy_inputs)"
+                echo "    cp /path/to/protein.pdb /path/to/ligand.mol2 ."
+                echo ""
+            fi
         fi
-        _smart_recommendation
         echo ""
         _print_main_menu_actions
         echo ""
         if _prep_complete; then
             read -r -p "$(t prompt_main_full)" main
-        else
+        elif project_usable; then
             read -r -p "$(t prompt_main_prep)" main
+        else
+            read -r -p "$(t prompt_main_settings)" main
         fi
         _dispatch_main_choice "${main}"
     done
@@ -679,8 +714,15 @@ main_cli() {
     case "${cmd}" in
         menu) orchestrator_menu ;;
         help|-h|--help) usage ;;
-        check|env) exec bash "${RUN_SH}" check ;;
+        check|env)
+            if ! project_usable && ! is_install_home; then
+                log_warn "$(t warn_no_inputs)"
+                exit 1
+            fi
+            exec bash "${RUN_SH}" check
+            ;;
         prep|all)
+            _require_project_workspace || exit 1
             if [[ $# -gt 0 ]]; then
                 exec bash "${RUN_SH}" stage "$1"
             else
@@ -694,6 +736,7 @@ main_cli() {
         cleanup-install|clean-install) bash "${CLEANUP_INSTALL_SH}" "$@" ;;
         stage)
             [[ -n "${1:-}" ]] || die "$(t run_err_stage_arg)"
+            _require_project_workspace || exit 1
             exec bash "${RUN_SH}" stage "$1"
             ;;
         setup) exec bash "${MDPREP_DIR}/setup_env.sh" "$@" ;;

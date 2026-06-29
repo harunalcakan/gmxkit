@@ -52,6 +52,10 @@ project_has_inputs() {
     [[ -f "${WORKDIR}/${PROTEIN_PDB}" && -f "${WORKDIR}/${LIGAND_MOL2}" ]]
 }
 
+project_usable() {
+    ! is_install_home && project_has_inputs
+}
+
 WORKDIR="$(_resolve_workdir)"
 export GMXKIT_WORKDIR="${WORKDIR}"
 
@@ -81,7 +85,9 @@ _is_install_check() {
 LOG_DIR="${WORKDIR}/.gmxkit/logs"
 STATE_DIR="${WORKDIR}/.gmxkit/state"
 BACKUP_DIR="${WORKDIR}/.gmxkit/backups"
-mkdir -p "${LOG_DIR}" "${STATE_DIR}" "${BACKUP_DIR}"
+if is_install_home || project_has_inputs; then
+    mkdir -p "${LOG_DIR}" "${STATE_DIR}" "${BACKUP_DIR}"
+fi
 
 _ensure_project_ff() {
     [[ -e "${WORKDIR}/${FF_DIR}" ]] && return 0
@@ -93,6 +99,7 @@ _ensure_project_ff() {
 _scaffold_project_dir() {
     local target="$1"
     [[ "${target}" != "${GMXKIT_HOME}" ]] || return 0
+    [[ -f "${target}/${PROTEIN_PDB}" && -f "${target}/${LIGAND_MOL2}" ]] || return 0
 
     mkdir -p "${target}/.gmxkit/logs" "${target}/.gmxkit/state" "${target}/.gmxkit/backups"
 
