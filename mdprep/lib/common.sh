@@ -143,6 +143,7 @@ _log_raw() { printf '%s\n' "$*" >>"${RUN_LOG}"; }
 
 log_info() { printf '%s[INFO]%s %s\n' "${C_BLU}" "${C_RST}" "$*"; _log_raw "[$(_ts)][INFO] $*"; }
 log_ok()   { printf '%s[ OK ]%s %s\n' "${C_GRN}" "${C_RST}" "$*"; _log_raw "[$(_ts)][ OK ] $*"; }
+log_section() { echo ""; echo "======== $* ========"; }
 log_warn() { printf '%s[WARN]%s %s\n' "${C_YLW}" "${C_RST}" "$*"; _log_raw "[$(_ts)][WARN] $*"; }
 log_err()  { printf '%s[FAIL]%s %s\n' "${C_RED}" "${C_RST}" "$*" >&2; _log_raw "[$(_ts)][FAIL] $*"; }
 
