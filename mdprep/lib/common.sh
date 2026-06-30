@@ -64,19 +64,12 @@ if [[ -f "${WORKDIR}/gmxkit.env" ]]; then
     source "${WORKDIR}/gmxkit.env"
 fi
 
-sync_lig_resname_from_mol2
-
-if [[ -z "${CHECK_LIG_RESNAME:-}" ]]; then
-    CHECK_LIG_RESNAME="${LIG_RESNAME}"
-fi
-
 mol2_molecule_name() {
     local mol2="${1:-${WORKDIR}/${LIGAND_MOL2}}"
     [[ -f "${mol2}" ]] || return 1
     awk '/@<TRIPOS>MOLECULE/{getline; gsub(/[[:space:]]/,"",$0); print; exit}' "${mol2}"
 }
 
-# Residue name in mol2 atoms / merged .gro (SUBSTRUCTURE column), not MOLECULE title
 mol2_residue_name() {
     local mol2="${1:-${WORKDIR}/${LIGAND_MOL2}}"
     [[ -f "${mol2}" ]] || return 1
@@ -96,6 +89,12 @@ sync_lig_resname_from_mol2() {
         CHECK_LIG_RESNAME="${res}"
     fi
 }
+
+sync_lig_resname_from_mol2
+
+if [[ -z "${CHECK_LIG_RESNAME:-}" ]]; then
+    CHECK_LIG_RESNAME="${LIG_RESNAME}"
+fi
 
 _is_install_check() {
     [[ "${GMXKIT_CHECK_SCOPE:-}" == "install" ]] && return 0
