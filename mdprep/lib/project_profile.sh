@@ -67,6 +67,9 @@ prompt_system_type_if_needed() {
     case "${ans,,}" in
         y|yes|e|evet|2|metal|m)
             set_metal_enzyme_mode yes
+            if [[ -z "${METAL_HSD_RESIDUES:-}" ]]; then
+                log_warn "$(t profile_metal_hsd_missing)"
+            fi
             echo "  $(t profile_metal_hint "${METAL_HSD_RESIDUES:-}" "${METAL_CHAIN:-A}")"
             echo "  $(t profile_metal_edit "$(_project_env_file)")"
             ;;

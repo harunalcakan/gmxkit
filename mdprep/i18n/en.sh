@@ -99,6 +99,7 @@ I18N_profile_ask_metal='  2 / y     — metalloenzyme (e.g. CA + Zn, HSD prep)'
 I18N_profile_ask_prompt='Choice [1]: '
 I18N_profile_metal_set='Project profile: METAL_ENZYME=%s (saved in gmxkit.env)'
 I18N_profile_metal_hint='Default HSD residues: %s (chain %s). Edit gmxkit.env if your PDB differs.'
+I18N_profile_metal_hsd_missing='METAL_HSD_RESIDUES is empty — set coordinating His numbers in gmxkit.env (see mdprep/profiles/).'
 I18N_profile_metal_edit='File: %s'
 I18N_profile_current='Current: METAL_ENZYME=%s'
 I18N_profile_opt_std='Standard protein–ligand (skip metalloenzyme step)'
@@ -310,8 +311,9 @@ I18N_check_project_pass='PROJECT CHECK PASSED.'
 I18N_check_project_fail='PROJECT CHECK FAILED.'
 I18N_check_project_hint='Add protein.pdb and ligand.mol2, then run from that folder.'
 I18N_check_ligand_mol2="mol2 molecule name: '%s' (LIG_RESNAME='%s')"
-I18N_check_ligand_resname_ok='LIG_RESNAME matches mol2.'
-I18N_check_ligand_resname_mismatch="LIG_RESNAME '%s' ≠ mol2 name '%s' — set LIG_RESNAME in gmxkit.env"
+I18N_check_ligand_mol2_resi="mol2 residue (gro): '%s'"
+I18N_check_ligand_resname_ok='LIG_RESNAME matches mol2 residue.'
+I18N_check_ligand_resname_mismatch="LIG_RESNAME '%s' ≠ mol2 residue '%s' — set LIG_RESNAME in gmxkit.env"
 I18N_check_protein_counts='ATOM=%s  HETATM=%s  HOH=%s'
 I18N_check_protein_clean='Protein PDB looks clean (no HETATM/HOH).'
 I18N_check_protein_hetatm='HETATM or HOH found — remove before pdb2gmx (ligand is separate mol2).'

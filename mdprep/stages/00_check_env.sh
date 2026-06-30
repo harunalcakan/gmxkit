@@ -115,9 +115,13 @@ done
 log_info "$(t check_section_ligand)"
 if [[ -f "${WORKDIR}/${LIGAND_MOL2}" ]]; then
     mol_name="$(mol2_molecule_name "${WORKDIR}/${LIGAND_MOL2}" || true)"
+    mol_res="$(mol2_residue_name "${WORKDIR}/${LIGAND_MOL2}" || true)"
     log_info "$(t check_ligand_mol2 "${mol_name:-?}" "${LIG_RESNAME}")"
-    if [[ -n "${mol_name}" && "${mol_name}" != "${LIG_RESNAME}" ]]; then
-        log_warn "$(t check_ligand_resname_mismatch "${mol_name}" "${LIG_RESNAME}")"
+    if [[ -n "${mol_res}" ]]; then
+        log_info "$(t check_ligand_mol2_resi "${mol_res}")"
+    fi
+    if [[ -n "${mol_res}" && "${mol_res}" != "${LIG_RESNAME}" ]]; then
+        log_warn "$(t check_ligand_resname_mismatch "${LIG_RESNAME}" "${mol_res}")"
     else
         log_ok "$(t check_ligand_resname_ok "${LIG_RESNAME}")"
     fi

@@ -70,10 +70,10 @@ run_cmd "${PY}" "${TOP_PY}" add-posre "${PROTEIN_TOP}" "${PROTEIN_TOP}" \
 # --- Protein_LIG + Water_and_Ions index -------------------------------------
 log_info "--- ${INDEX_NDX} (${GRP_PROTEIN_LIG}, ${GRP_WATER_IONS}) ---"
 LIG_NDX_NAME="$("${PY}" -c "import sys; sys.path.insert(0,'${MDPREP_DIR}/lib'); from top_tools import read_moleculetype; print(read_moleculetype('${LIG_ITP}'))")"
-log_info "Ligand index residue/moltype: ${LIG_NDX_NAME} (lig.itp)"
+log_info "Ligand gro/topol residue: ${LIG_RESNAME} (lig.itp moleculetype: ${LIG_NDX_NAME})"
 run_cmd "${PY}" "${NDX_PY}" complex-index --gmx "${GMX}" \
     "${STRUCT_GRO}" "${INDEX_NDX}" \
-    --lig-resname "${LIG_NDX_NAME}" \
+    --lig-resname "${LIG_RESNAME}" \
     --grp-pl "${GRP_PROTEIN_LIG}" \
     --grp-wi "${GRP_WATER_IONS}" \
     $([[ "${METAL_ENZYME}" == "yes" ]] && echo "--metal-resname ${METAL_ION_RESNAME}") \

@@ -19,7 +19,7 @@ t() {
     local fmt="${!var:-[$key]}"
     if [[ $# -gt 0 ]]; then
         # shellcheck disable=SC2059
-        printf "$fmt" "$@"
+        printf -- "$fmt" "$@"
     else
         printf '%s' "$fmt"
     fi
