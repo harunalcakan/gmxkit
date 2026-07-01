@@ -6,6 +6,8 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../lib/common.sh
 source "${SCRIPT_DIR}/../lib/common.sh"
+# shellcheck source=../lib/verify_index.sh
+source "${SCRIPT_DIR}/../lib/verify_index.sh"
 
 STAGE="06_local_md"
 RUN_SCRIPT="run_local_md.sh"
@@ -18,6 +20,9 @@ is_done "05_index_posre" || die "Önce: ./mdprep/run.sh stage 05"
 log_info "================ YEREL MD (NVT → NPT → Production) ================"
 require_file "${PROTEIN_TOP}" "topoloji"
 require_file "${INDEX_NDX}" "index.ndx"
+if ! verify_index_tc_groups "${INDEX_NDX}" yes; then
+    die "index.ndx tc-grps grupları eksik — önce: FORCE=1 gmxkit stage index  veya  gmxkit audit --fix-index"
+fi
 require_file "${EM_MDP}" "em mdp"
 require_file "${NVT_MDP}" "nvt mdp"
 require_file "${NPT_MDP}" "npt mdp"
@@ -83,6 +88,13 @@ source "${MDPREP_DIR}/lib/mdp_prompt.sh"
 # shellcheck source=mdprep/config.sh
 source "${MDPREP_DIR}/config.sh"
 
+_verify_index_for_grompp() {
+  bash "${MDPREP_DIR}/lib/verify_index.sh" --check || {
+    echo "[run_local_md] index.ndx tc-grps eksik — gmxkit audit --fix-index" >&2
+    exit 1
+  }
+}
+
 _run_binding_check() {
   local phase="\$1"
   [[ "\${CHECK_BINDING:-yes}" == "yes" ]] || return 0
@@ -126,6 +138,7 @@ parse_args() {
 }
 
 run_nvt() {
+  _verify_index_for_grompp
   configure_mdp_nvt "${NVT_MDP}"
   \${GMX} grompp -f ${NVT_MDP} -c ${EM_GRO} -r ${EM_GRO} -p \${TOP} -n \${NDX} \\
     -o ${NVT_TPR} -maxwarn \${MW}
@@ -134,6 +147,7 @@ run_nvt() {
 }
 
 run_npt() {
+  _verify_index_for_grompp
   configure_mdp_npt "${NPT_MDP}"
   \${GMX} grompp -f ${NPT_MDP} -c ${NVT_DEFFNM}.gro -r ${NVT_DEFFNM}.gro -t ${NVT_DEFFNM}.cpt \\
     -p \${TOP} -n \${NDX} -o ${NPT_TPR} -maxwarn \${MW}
@@ -142,6 +156,7 @@ run_npt() {
 }
 
 run_prod() {
+  _verify_index_for_grompp
   configure_mdp_md "${PROD_MDP}"
   \${GMX} grompp -f ${PROD_MDP} -c ${NPT_DEFFNM}.gro -t ${NPT_DEFFNM}.cpt \\
     -p \${TOP} -n \${NDX} -o ${MD_TPR} -maxwarn \${MW}

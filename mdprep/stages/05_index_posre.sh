@@ -6,6 +6,8 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../lib/common.sh
 source "${SCRIPT_DIR}/../lib/common.sh"
+# shellcheck source=../lib/verify_index.sh
+source "${SCRIPT_DIR}/../lib/verify_index.sh"
 
 STAGE="05_index_posre"
 NDX_PY="${MDPREP_DIR}/lib/ndx_tools.py"
@@ -79,11 +81,11 @@ run_cmd "${PY}" "${NDX_PY}" complex-index --gmx "${GMX}" \
     $([[ "${METAL_ENZYME}" == "yes" ]] && echo "--metal-resname ${METAL_ION_RESNAME}") \
     || die "complex index başarısız"
 
-require_file "${INDEX_NDX}" "index.ndx"
-grep -q "${GRP_PROTEIN_LIG}" "${INDEX_NDX}" \
-    || die "${INDEX_NDX} içinde ${GRP_PROTEIN_LIG} yok"
-grep -q "${GRP_WATER_IONS}" "${INDEX_NDX}" \
-    || die "${INDEX_NDX} içinde ${GRP_WATER_IONS} yok"
+verify_index_tc_groups "${INDEX_NDX}" no \
+    || die "index.ndx tc-grps grupları eksik — grompp başarısız olur"
+sync_mdp_tc_grps
+verify_mdp_index_tc_groups "${INDEX_NDX}" no \
+    || die "MDP tc-grps index.ndx ile uyuşmuyor"
 
 log_ok "Index ve posre hazır."
 mark_done "${STAGE}"

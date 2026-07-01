@@ -8,9 +8,12 @@ MDPREP_DIR="$(cd "${LIB_DIR}/.." && pwd)"
 source "${MDPREP_DIR}/lib/common.sh"
 # shellcheck source=sync_mdp.sh
 source "${MDPREP_DIR}/lib/sync_mdp.sh"
+# shellcheck source=verify_index.sh
+source "${MDPREP_DIR}/lib/verify_index.sh"
 
 AUDIT_REPORT="${AUDIT_REPORT:-${LOG_DIR}/audit_report.txt}"
 FIX_MDP="${FIX_MDP:-no}"
+FIX_INDEX="${FIX_INDEX:-no}"
 
 _audit_line() {
     local status="$1" msg="$2"
@@ -109,6 +112,16 @@ run_audit() {
     done
 
     echo "" | tee -a "${AUDIT_REPORT}"
+    echo "--- MDP ↔ index tc-grps ---" | tee -a "${AUDIT_REPORT}"
+    if verify_mdp_index_tc_groups "${INDEX_NDX}" yes; then
+        _audit_line "OK" "MDP tc-grps index.ndx ile uyumlu"
+        ok=$((ok + 1))
+    else
+        _audit_line "EKSIK" "MDP tc-grps index.ndx ile uyuşmuyor — gmxkit audit --fix-index"
+        fail=$((fail + 1))
+    fi
+
+    echo "" | tee -a "${AUDIT_REPORT}"
     echo "--- Kimya (HSD / Zn) ---" | tee -a "${AUDIT_REPORT}"
     _audit_hsd_zn "processed.gro" && ok=$((ok + 1)) || warn=$((warn + 1))
     [[ -f em.gro ]] && _audit_hsd_zn "em.gro" >/dev/null && ok=$((ok + 1))
@@ -118,6 +131,16 @@ run_audit() {
     for f in nvt.mdp npt.mdp md.mdp; do
         _audit_tc_grps "${f}" && ok=$((ok + 1)) || warn=$((warn + 1))
     done
+    if [[ "${FIX_INDEX}" == "yes" ]]; then
+        echo "" | tee -a "${AUDIT_REPORT}"
+        echo "--- index düzeltme ---" | tee -a "${AUDIT_REPORT}"
+        if fix_index_and_mdp | tee -a "${AUDIT_REPORT}"; then
+            ok=$((ok + 1))
+        else
+            fail=$((fail + 1))
+        fi
+    fi
+
     if [[ "${FIX_MDP}" == "yes" ]]; then
         sync_mdp_from_config yes | tee -a "${AUDIT_REPORT}" || true
     else
@@ -159,12 +182,20 @@ run_audit() {
 main_audit() {
     case "${1:-}" in
         --fix-mdp) FIX_MDP=yes; shift ;;
+        --fix-index) FIX_INDEX=yes; shift ;;
+        --fix-all)
+            FIX_INDEX=yes
+            FIX_MDP=yes
+            shift
+            ;;
         help|-h)
             cat <<EOF
 Hazırlık denetimi:
 
   ./md audit              dosya + index + HSD/Zn + mdp kontrol
   ./md audit --fix-mdp    denetim + config'ten mdp nsteps senkronize
+  ./md audit --fix-index  index.ndx yeniden üret + mdp tc-grps senkron
+  ./md audit --fix-all    --fix-index + --fix-mdp
 
 Rapor: ${AUDIT_REPORT}
 EOF
